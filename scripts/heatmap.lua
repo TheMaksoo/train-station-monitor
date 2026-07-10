@@ -26,7 +26,7 @@ end
 
 local function state_for(player_index)
   local p = storage.heatmap.players[player_index]
-  if not p then p = { enabled = false, objs = {} }; storage.heatmap.players[player_index] = p end
+  if not p then p = { enabled = true, objs = {} }; storage.heatmap.players[player_index] = p end
   return p
 end
 

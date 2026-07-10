@@ -1,4 +1,21 @@
 ---------------------------------------------------------------------------
+Version: 0.1.10
+Date: 2026-07-10
+  Improvements:
+    - Renamed the saturation-facing UI to queue/fill terminology.
+    - Load-station cargo chips now show the cargo icon plus quantity only.
+    - Restored the station-idle locale alias used by the no-train flying text.
+
+---------------------------------------------------------------------------
+Version: 0.1.9
+Date: 2026-07-10
+  Improvements:
+    - Show item/fluid type in load-train cargo chips.
+    - Simplified station state chips to avoid saturation jargon.
+    - Enabled heatmap by default so the overlay appears immediately.
+    - Added a "No throughput yet" placeholder so expanded groups always show a graph area.
+
+---------------------------------------------------------------------------
 Version: 0.1.8
 Date: 2026-07-10
   Fixes:

@@ -164,9 +164,9 @@ local function build_group_row(tbl, g, ui)
   num_cell(tbl, nil, g.unload,   { "tod.tt-unload" })
   num_cell(tbl, nil, station_total(g), { "tod.tt-stations" })
   num_cell(tbl, nil, g.present,  { "tod.tt-value-present", g.present, station_total(g) }, COLORS.serving)
-  -- Saturation cell: "waiting/capacity" coloured by how full the group's queues are.
+  -- Queue cell: "waiting/capacity" coloured by how full the group's queues are.
   num_cell(tbl, nil, (g.waiting or 0) .. "/" .. (g.qcap or 0),
-           { "tod.tt-value-saturation", g.waiting or 0, g.qcap or 0 }, group_color(g))
+           { "tod.tt-value-queue", g.waiting or 0, g.qcap or 0 }, group_color(g))
   num_cell(tbl, nil, g.disabled, { "tod.tt-value-disabled", g.disabled, station_total(g) }, g.disabled > 0 and COLORS.disabled or nil)
 
   -- Optional average wait (mm:ss). Hidden value 0 shows as "–".
@@ -215,9 +215,9 @@ local function build_station_children(tbl, g)
     local mode_badge = meta.add({ type = "label", caption = rec.mode == "load" and "LOAD" or "UNLOAD" })
     mode_badge.style.font = "default-semibold"
     mode_badge.style.font_color = mode_color
-    local state_badge = meta.add({ type = "label", caption = rec.stats.disabled and "OFF" or string.upper(state_name) })
-    state_badge.style.font = "default-semibold"
-    state_badge.style.font_color = state_color
+    local state_chip = meta.add({ type = "label", caption = rec.stats.disabled and "OFF" or (state_name == "serving" and "ACTIVE" or state_name == "saturated" and "FULL" or state_name == "filling" and "QUEUE" or "READY") })
+    state_chip.style.font = "default-semibold"
+    state_chip.style.font_color = state_color
     if rec.mode == "load" and rec.stats.train_icons then
       for _, sig in ipairs(rec.stats.train_icons) do
         local chip = meta.add({ type = "flow", direction = "horizontal" })
@@ -225,14 +225,8 @@ local function build_station_children(tbl, g)
         chip.add({ type = "sprite", sprite = signal_sprite(sig) })
         local qty = chip.add({ type = "label", caption = tostring(sig.count) })
         qty.style.font_color = { 0.76, 0.79, 0.86 }
+        qty.tooltip = { "tod.tt-train-content-chip", sig.type, sig.name, sig.count }
       end
-    end
-    if rec.mode == "load" and rec.stats.train_contents then
-      local contents_badge = meta.add({ type = "label", caption = rec.stats.train_contents })
-      contents_badge.style.font_color = { 0.70, 0.84, 0.58 }
-      contents_badge.style.font = "default"
-      contents_badge.tooltip = { "tod.tt-train-contents", rec.stats.train_contents_total or 0,
-        rec.stats.train_contents_items or 0, rec.stats.train_contents_fluids or 0 }
     end
 
     -- Col 2: per-station controls.
@@ -244,12 +238,12 @@ local function build_station_children(tbl, g)
 
     -- Col 3: state label.
     local state_cap = ({
-      saturated = { "tod.station-saturated" },
-      filling   = { "tod.station-filling" },
-      serving   = { "tod.station-present" },
-      idle      = { "tod.station-idle" },
+      saturated = { "tod.station-full" },
+      filling   = { "tod.station-queue" },
+      serving   = { "tod.station-active" },
+      idle      = { "tod.station-ready" },
       disabled  = { "tod.station-disabled" },
-    })[rec.stats.state] or { "tod.station-idle" }
+    })[rec.stats.state] or { "tod.station-ready" }
     local span = tbl.add({ type = "label", caption = state_cap })
     span.style.font_color = state_color
     span.style.font = rec.stats.disabled and "default" or "default-semibold"
@@ -267,7 +261,7 @@ local function build_station_children(tbl, g)
       bar.style.color = color
       local lbl = sat.add({ type = "label",
         caption = (rec.stats.waiting or 0) .. "/" .. (rec.stats.qcap or 0),
-        tooltip = { "tod.tt-value-saturation", rec.stats.waiting or 0, rec.stats.qcap or 0 } })
+        tooltip = { "tod.tt-value-queue", rec.stats.waiting or 0, rec.stats.qcap or 0 } })
       lbl.style.font_color = color
     end
 
@@ -302,6 +296,12 @@ local function build_chart_row(tbl, g)
     local b = bars.add({ type = "progressbar", value = peak > 0 and (v / peak) or 0 })
     b.style.width = 12
     b.style.color = COLORS.saturated
+  end
+
+  if peak == 0 then
+    local empty = cell.add({ type = "label", caption = { "tod.throughput-none" } })
+    empty.style.font_color = { 0.62, 0.64, 0.68 }
+    empty.style.font = "default-semibold"
   end
 
   for _ = 1, 7 do tbl.add({ type = "empty-widget" }) end
