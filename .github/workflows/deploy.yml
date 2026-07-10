@@ -5,8 +5,8 @@ name: Deploy Website
 # │  Tag  v*       →  Handled by release.yml (mod zip)       │
 # └──────────────────────────────────────────────────────────┘
 #
-# 🔑 REQUIRED SECRETS (same server as karting):
-#   FTP_SERVER    — Namecheap FTP host (or repository variable FTP_SERVER)
+# 🔑 REQUIRED CREDENTIALS (same server as karting):
+#   FTP_SERVER    — Namecheap FTP host (secret or repository variable)
 #   FTP_USERNAME  — FTP username
 #   FTP_PASSWORD  — FTP password
 
