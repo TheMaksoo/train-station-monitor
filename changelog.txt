@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------
+Version: 0.1.14
+Date: 2026-07-10
+  Fixes:
+    - Fixed malformed locale entry in train-station-monitor.cfg that caused "Missing value" on mod load.
+
+---------------------------------------------------------------------------
 Version: 0.1.13
 Date: 2026-07-10
   Improvements:
