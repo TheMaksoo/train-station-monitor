@@ -6,7 +6,7 @@ name: Deploy Website
 # └──────────────────────────────────────────────────────────┘
 #
 # 🔑 REQUIRED SECRETS (same server as karting):
-#   FTP_SERVER    — Namecheap FTP host
+#   FTP_SERVER    — Namecheap FTP host (or repository variable FTP_SERVER)
 #   FTP_USERNAME  — FTP username
 #   FTP_PASSWORD  — FTP password
 
@@ -29,7 +29,7 @@ jobs:
       - name: Deploy web/ via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
-          server:    ${{ secrets.FTP_SERVER }}
+          server:    ${{ vars.FTP_SERVER || secrets.FTP_SERVER }}
           username:  ${{ secrets.FTP_USERNAME }}
           password:  ${{ secrets.FTP_PASSWORD }}
           local-dir: ./web/
