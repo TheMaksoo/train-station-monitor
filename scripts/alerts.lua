@@ -68,7 +68,12 @@ function alerts.refresh_all()
       local g = groups[a.group_key]
       local target = g and anchor_entity(g)
       if target then
-        local icon = { type = g.kind, name = g.proto } -- SignalID (item/fluid/...)
+        local icon
+        if g.kind == "station" then
+          icon = { type = "entity", name = "train-stop" }
+        else
+          icon = { type = g.kind, name = g.proto } -- SignalID (item/fluid/...)
+        end
         player.add_custom_alert(target, icon,
           { "tod.alert-" .. a.kind, "[img=" .. g.sprite .. "]", a.count or 0 }, true)
       end

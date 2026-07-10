@@ -159,17 +159,38 @@ end
 local function build_station_children(tbl, g)
   for _, rec in ipairs(g.stations) do
     local color = station_color(rec)
+    local mode_color = rec.mode == "load" and { 0.55, 0.82, 0.42 } or { 0.95, 0.73, 0.28 }
+    local state_color = color
+    local state_name = rec.stats.state or "idle"
 
-    -- Col 1: indented dot + name + mode badge.
+    -- Col 1: icon + stacked station identity block.
     local cell = tbl.add({ type = "flow", direction = "horizontal" })
     cell.style.vertical_align = "center"
     cell.style.left_padding = 22
     cell.style.horizontally_stretchable = true
-    local dot = cell.add({ type = "label", caption = "● " })
+    cell.style.horizontal_spacing = 8
+    local icon = cell.add({ type = "sprite", sprite = "entity/train-stop" })
+    icon.style.minimal_width = 20
+    icon.style.minimal_height = 20
+    local text = cell.add({ type = "flow", direction = "vertical" })
+    text.style.vertical_spacing = 0
+    text.style.horizontally_stretchable = true
+    local row = text.add({ type = "flow", direction = "horizontal" })
+    row.style.vertical_align = "center"
+    row.style.horizontal_spacing = 6
+    local dot = row.add({ type = "label", caption = "●" })
     dot.style.font_color = color
-    local nm = cell.add({ type = "label", caption = rec.name })
+    local nm = row.add({ type = "label", caption = rec.name })
+    nm.style.font = "default-semibold"
     nm.style.single_line = true
-    cell.add({ type = "label", caption = rec.mode == "load" and "  [L]" or "  [U]" })
+    local meta = text.add({ type = "flow", direction = "horizontal" })
+    meta.style.horizontal_spacing = 4
+    local mode_badge = meta.add({ type = "label", caption = rec.mode == "load" and "LOAD" or "UNLOAD" })
+    mode_badge.style.font = "default-semibold"
+    mode_badge.style.font_color = mode_color
+    local state_badge = meta.add({ type = "label", caption = rec.stats.disabled and "OFF" or string.upper(state_name) })
+    state_badge.style.font = "default-semibold"
+    state_badge.style.font_color = state_color
 
     -- Col 2: per-station controls.
     local ctl = tbl.add({ type = "flow", direction = "horizontal" })
@@ -187,14 +208,16 @@ local function build_station_children(tbl, g)
       disabled  = { "tod.station-disabled" },
     })[rec.stats.state] or { "tod.station-idle" }
     local span = tbl.add({ type = "label", caption = state_cap })
-    span.style.font_color = color
+    span.style.font_color = state_color
+    span.style.font = rec.stats.disabled and "default" or "default-semibold"
 
     -- Col 4: saturation bar + "waiting/capacity" — how many ARE and CAN wait.
     local sat = tbl.add({ type = "flow", direction = "horizontal" })
     sat.style.vertical_align = "center"
     sat.style.horizontal_spacing = 4
     if rec.stats.disabled then
-      sat.add({ type = "label", caption = "—" })
+      local off = sat.add({ type = "label", caption = "OFF" })
+      off.style.font_color = COLORS.disabled
     else
       local bar = sat.add({ type = "progressbar", value = math.min(1, rec.stats.saturation or 0) })
       bar.style.width = 60

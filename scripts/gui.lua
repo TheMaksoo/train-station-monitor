@@ -239,7 +239,7 @@ function gui.on_click(event)
   elseif prefix == "tod_zoom" then
     local rec = cache.get_station(tonumber(arg))
     if rec and rec.entity.valid then
-      player.zoom_to_world(rec.entity.position, 0.6)
+      player.opened = rec.entity
     end
     return
   elseif prefix == "tod_train" then
