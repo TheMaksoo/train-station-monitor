@@ -71,7 +71,6 @@ end
 
 local function build_toolbar(frame, ui)
   local toolbar = frame.add({ type = "frame", name = "tod_toolbar", style = "tod_toolbar_frame", direction = "horizontal" })
-  toolbar.style.horizontal_spacing = 10
 
   -- Sort dropdown
   toolbar.add({ type = "label", caption = { "tod.sort-label" } })

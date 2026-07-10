@@ -37,6 +37,7 @@ styles["tod_toolbar_frame"] = {
   type = "frame_style",
   parent = "subheader_frame",
   horizontally_stretchable = "on",
+  horizontal_spacing = 10,
   left_padding = 8,
   right_padding = 8,
   top_padding = 6,
