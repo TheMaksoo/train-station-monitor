@@ -61,6 +61,9 @@ local function build_titlebar(frame, ui)
   alert_badge.style.font = "default-bold"
   alert_badge.style.font_color = { 0.91, 0.40, 0.30 }
   alert_badge.drag_target = frame
+  local heatmap_badge = bar.add({ type = "label", name = "tod_heatmap_badge" })
+  heatmap_badge.style.font = "default-bold"
+  heatmap_badge.drag_target = frame
   local filler = bar.add({ type = "empty-widget", style = "draggable_space_header" })
   filler.style.horizontally_stretchable = true
   filler.style.height = 24
@@ -87,6 +90,22 @@ local function build_toolbar(frame, ui)
   toolbar.add({ type = "checkbox", name = "tod_heatmap",
                 caption = { "tod.filter-heatmap" }, tooltip = { "tod.tt-heatmap" },
                 state = heatmap.is_enabled(frame.player_index) })
+  toolbar.add({
+    type = "sprite-button",
+    name = "tod_heatmap_focus",
+    style = "tool_button",
+    sprite = "utility/map",
+    tooltip = { "tod.tt-heatmap-focus" },
+  })
+
+  local legend = toolbar.add({ type = "flow", name = "tod_heatmap_legend", direction = "horizontal" })
+  legend.style.horizontal_spacing = 4
+  local cool = legend.add({ type = "label", caption = { "tod.heatmap-legend-cool" } })
+  cool.style.font_color = { 0.42, 0.80, 0.45 }
+  local warm = legend.add({ type = "label", caption = { "tod.heatmap-legend-warm" } })
+  warm.style.font_color = { 0.90, 0.73, 0.30 }
+  local hot = legend.add({ type = "label", caption = { "tod.heatmap-legend-hot" } })
+  hot.style.font_color = { 0.86, 0.34, 0.30 }
 
   toolbar.add({ type = "line", direction = "vertical" })
 
@@ -204,6 +223,9 @@ function gui.refresh(player)
   w.tod_titlebar.tod_subtitle.caption = { "tod.subtitle", ng, cache.station_count() }
   local na = alerts.count()
   w.tod_titlebar.tod_alert_badge.caption = na > 0 and { "tod.alerts-badge", na } or ""
+  local hm = heatmap.is_enabled(player.index)
+  w.tod_titlebar.tod_heatmap_badge.caption = hm and { "tod.heatmap-on" } or { "tod.heatmap-off" }
+  w.tod_titlebar.tod_heatmap_badge.style.font_color = hm and { 0.55, 0.82, 0.42 } or { 0.62, 0.64, 0.68 }
 end
 
 --- Refresh every player who has the window open (called after a stats tick).
@@ -260,6 +282,17 @@ function gui.on_click(event)
       gui.refresh(player)
     end
     return
+  elseif el.name == "tod_heatmap_focus" then
+    if not heatmap.is_enabled(player.index) then
+      heatmap.set(player, true)
+    end
+    local target = heatmap.focus_hotspot(player)
+    if target and target.valid then
+      player.opened = target
+    else
+      player.create_local_flying_text({ text = { "tod.heatmap-no-hotspot" }, position = player.position })
+    end
+    return
   end
 end
 
@@ -281,6 +314,7 @@ function gui.on_checked(event)
   if el.name == "tod_heatmap" then
     local player = game.get_player(event.player_index)
     heatmap.set(player, el.state)
+    gui.refresh(player)
     return
   end
   if prefix == "tod_filter" then

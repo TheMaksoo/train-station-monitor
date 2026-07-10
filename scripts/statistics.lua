@@ -49,6 +49,63 @@ end
 
 local NO_LIMIT = 4294967295 -- trains_limit sentinel meaning "no limit set"
 
+local function count_table_values(t)
+  local n = 0
+  for _, v in pairs(t or {}) do
+    n = n + (tonumber(v) or 0)
+  end
+  return n
+end
+
+local function best_content_icon(train)
+  if not (train and train.valid) then return nil end
+
+  local ok_items, items = pcall(function() return train.get_contents() end)
+  items = ok_items and items or {}
+  local ok_fluids, fluids = pcall(function() return train.get_fluid_contents() end)
+  fluids = ok_fluids and fluids or {}
+
+  local best_type, best_name, best_count = nil, nil, 0
+  for name, count in pairs(items) do
+    if count > best_count then
+      best_type, best_name, best_count = "item", name, count
+    end
+  end
+  for name, count in pairs(fluids) do
+    if count > best_count then
+      best_type, best_name, best_count = "fluid", name, count
+    end
+  end
+
+  if not best_type then return nil end
+
+  local parts = {}
+  for name, count in pairs(items) do
+    parts[#parts + 1] = { name = name, count = count, type = "item" }
+  end
+  for name, count in pairs(fluids) do
+    parts[#parts + 1] = { name = name, count = count, type = "fluid" }
+  end
+  table.sort(parts, function(a, b) return a.count > b.count end)
+
+  local summary = {}
+  local top_icons = {}
+  for i = 1, math.min(2, #parts) do
+    local part = parts[i]
+    summary[#summary + 1] = string.format("%s x %d", part.name, part.count)
+    top_icons[#top_icons + 1] = { type = part.type, name = part.name, count = part.count }
+  end
+
+  return {
+    icon = { type = best_type, name = best_name },
+    icons = top_icons,
+    summary = table.concat(summary, " · "),
+    total = count_table_values(items) + count_table_values(fluids),
+    total_items = count_table_values(items),
+    total_fluids = count_table_values(fluids),
+  }
+end
+
 --- Gather raw metrics for one station.
 -- @return present(bool), waiting(int), qcap(int|nil), disabled(bool)
 --   present : a train is physically being served at the platform
@@ -106,6 +163,25 @@ end
 function statistics.refresh_all()
   cache.each_station(function(_, rec)
     refresh_station(rec)
+
+    local ok_train, train = pcall(function() return rec.entity.get_stopped_train() end)
+    train = ok_train and train or nil
+    if rec.mode == "load" and train and train.valid then
+      local contents = best_content_icon(train)
+      rec.stats.train_icon = contents and contents.icon or nil
+      rec.stats.train_icons = contents and contents.icons or nil
+      rec.stats.train_contents = contents and contents.summary or nil
+      rec.stats.train_contents_total = contents and contents.total or 0
+      rec.stats.train_contents_items = contents and contents.total_items or 0
+      rec.stats.train_contents_fluids = contents and contents.total_fluids or 0
+    else
+      rec.stats.train_icon = nil
+      rec.stats.train_icons = nil
+      rec.stats.train_contents = nil
+      rec.stats.train_contents_total = 0
+      rec.stats.train_contents_items = 0
+      rec.stats.train_contents_fluids = 0
+    end
   end)
 
   local groups = cache.rebuild_groups()

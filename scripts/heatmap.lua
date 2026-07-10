@@ -90,6 +90,22 @@ function heatmap.set(player, enabled)
   heatmap.redraw(player)
 end
 
+--- Find the hottest visible station for the player's current surface.
+function heatmap.focus_hotspot(player)
+  local surface = player.surface
+  local best_entity, best_score = nil, -1
+  cache.each_station(function(_, rec)
+    local e = rec.entity
+    if not (e and e.valid and e.surface == surface) then return end
+    local score = (rec.stats and rec.stats.disabled) and -1 or ((rec.stats and rec.stats.congestion) or 0)
+    if score > best_score then
+      best_score = score
+      best_entity = e
+    end
+  end)
+  return best_entity
+end
+
 --- Refresh every player who has the heatmap enabled (called each stats tick).
 function heatmap.refresh_all()
   for _, player in pairs(game.connected_players) do

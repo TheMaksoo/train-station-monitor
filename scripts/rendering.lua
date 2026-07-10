@@ -107,6 +107,26 @@ local function station_color(rec)
   return COLORS.idle
 end
 
+local function has_sprite(signal)
+  if type(signal) ~= "table" or type(signal.type) ~= "string" or type(signal.name) ~= "string" then return false end
+  local ok, exists = pcall(function()
+    if signal.type == "item" then
+      return prototypes and prototypes.item and prototypes.item[signal.name] ~= nil
+    elseif signal.type == "fluid" then
+      return prototypes and prototypes.fluid and prototypes.fluid[signal.name] ~= nil
+    end
+    return false
+  end)
+  return ok and exists
+end
+
+local function signal_sprite(signal)
+  if has_sprite(signal) then
+    return signal.type .. "/" .. signal.name
+  end
+  return "entity/train-stop"
+end
+
 -- Row construction ----------------------------------------------------------
 
 --- Numeric cell with an optional tooltip and colour.
@@ -162,17 +182,23 @@ local function build_station_children(tbl, g)
     local mode_color = rec.mode == "load" and { 0.55, 0.82, 0.42 } or { 0.95, 0.73, 0.28 }
     local state_color = color
     local state_name = rec.stats.state or "idle"
+    local station_icon = rec.mode == "load" and rec.stats.train_icon or nil
 
-    -- Col 1: icon + stacked station identity block.
-    local cell = tbl.add({ type = "flow", direction = "horizontal" })
-    cell.style.vertical_align = "center"
-    cell.style.left_padding = 22
+    -- Col 1: card-like station identity block.
+    local cell = tbl.add({ type = "frame", style = "subheader_frame", direction = "horizontal" })
+    cell.style.left_padding = 14
+    cell.style.right_padding = 10
+    cell.style.top_padding = 4
+    cell.style.bottom_padding = 4
     cell.style.horizontally_stretchable = true
-    cell.style.horizontal_spacing = 8
-    local icon = cell.add({ type = "sprite", sprite = "entity/train-stop" })
+    local card = cell.add({ type = "flow", direction = "horizontal" })
+    card.style.vertical_align = "center"
+    card.style.horizontally_stretchable = true
+    card.style.horizontal_spacing = 8
+    local icon = card.add({ type = "sprite", sprite = signal_sprite(station_icon) })
     icon.style.minimal_width = 20
     icon.style.minimal_height = 20
-    local text = cell.add({ type = "flow", direction = "vertical" })
+    local text = card.add({ type = "flow", direction = "vertical" })
     text.style.vertical_spacing = 0
     text.style.horizontally_stretchable = true
     local row = text.add({ type = "flow", direction = "horizontal" })
@@ -183,14 +209,31 @@ local function build_station_children(tbl, g)
     local nm = row.add({ type = "label", caption = rec.name })
     nm.style.font = "default-semibold"
     nm.style.single_line = true
+    nm.style.maximal_width = 360
     local meta = text.add({ type = "flow", direction = "horizontal" })
-    meta.style.horizontal_spacing = 4
+    meta.style.horizontal_spacing = 6
     local mode_badge = meta.add({ type = "label", caption = rec.mode == "load" and "LOAD" or "UNLOAD" })
     mode_badge.style.font = "default-semibold"
     mode_badge.style.font_color = mode_color
     local state_badge = meta.add({ type = "label", caption = rec.stats.disabled and "OFF" or string.upper(state_name) })
     state_badge.style.font = "default-semibold"
     state_badge.style.font_color = state_color
+    if rec.mode == "load" and rec.stats.train_icons then
+      for _, sig in ipairs(rec.stats.train_icons) do
+        local chip = meta.add({ type = "flow", direction = "horizontal" })
+        chip.style.horizontal_spacing = 2
+        chip.add({ type = "sprite", sprite = signal_sprite(sig) })
+        local qty = chip.add({ type = "label", caption = tostring(sig.count) })
+        qty.style.font_color = { 0.76, 0.79, 0.86 }
+      end
+    end
+    if rec.mode == "load" and rec.stats.train_contents then
+      local contents_badge = meta.add({ type = "label", caption = rec.stats.train_contents })
+      contents_badge.style.font_color = { 0.70, 0.84, 0.58 }
+      contents_badge.style.font = "default"
+      contents_badge.tooltip = { "tod.tt-train-contents", rec.stats.train_contents_total or 0,
+        rec.stats.train_contents_items or 0, rec.stats.train_contents_fluids or 0 }
+    end
 
     -- Col 2: per-station controls.
     local ctl = tbl.add({ type = "flow", direction = "horizontal" })

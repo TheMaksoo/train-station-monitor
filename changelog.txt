@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------------
+Version: 0.1.6
+Date: 2026-07-10
+  Improvements:
+    - Added heatmap legend chips (Cool / Warm / Hot) and a hotspot-focus button in the toolbar.
+    - Added heatmap status badge in the window title area.
+    - Added load-train cargo reading with robust API guards.
+    - Added top cargo/fluid icon chips and richer content tooltip on load station rows.
+    - Improved expanded station row visuals with card-like identity blocks and tighter spacing.
+    - Added release-mod.ps1 helper script that packages the current version and removes stale zip versions.
+
+---------------------------------------------------------------------------
 Version: 0.1.0
 Date: 2026-07-10
   Features:
