@@ -67,20 +67,19 @@ function parser.parse(name)
     end
   end
 
-  -- Fallback: plain station names like "Load [41]" or "Unload [2]"
-  -- Detect mode from anywhere in the name, strip [N] suffixes, use remainder as group.
-  local mode = detect_mode(name)
-  if not mode then return nil end
+  -- Fallback: track EVERY station regardless of name.
+  -- Detect mode if "load"/"unload" appears anywhere; otherwise default to "load"
+  -- so the station appears in the Load column (single-stop group).
+  -- Group key = the full name so each unique name is its own resource group.
+  local mode = detect_mode(name) or "load"
 
-  -- Remove [N] bracket numbers and the mode word, trim whitespace.
-  local clean = name
-  clean = string.gsub(clean, "%[%d+%]", "")          -- strip [41], [2] etc.
-  clean = string.gsub(clean, "%s*[Ll]oad%s*", " ")   -- strip Load/load
-  clean = string.gsub(clean, "%s*[Uu]nload%s*", " ") -- strip Unload/unload
-  clean = string.match(clean, "^%s*(.-)%s*$")        -- trim
+  -- Strip [N] bracket-numbers from the display proto (keeps names tidy).
+  local clean = string.match(name, "^%s*(.-)%s*$")
+  clean = string.gsub(clean, "%s*%[%d+%]%s*", "") -- strip [41], [2] etc.
+  clean = string.match(clean, "^%s*(.-)%s*$")     -- trim again
 
-  local proto     = (clean ~= "") and clean or (mode == "load" and "load-station" or "unload-station")
-  local group_key = "station/" .. proto
+  local proto     = (clean ~= "") and clean or name
+  local group_key = "station/" .. name   -- use original name so renames create new groups
 
   return {
     kind      = "station",
