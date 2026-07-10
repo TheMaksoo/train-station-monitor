@@ -223,9 +223,17 @@ function gui.refresh(player)
   w.tod_titlebar.tod_subtitle.caption = { "tod.subtitle", ng, cache.station_count() }
   local na = alerts.count()
   w.tod_titlebar.tod_alert_badge.caption = na > 0 and { "tod.alerts-badge", na } or ""
-  local hm = heatmap.is_enabled(player.index)
-  w.tod_titlebar.tod_heatmap_badge.caption = hm and { "tod.heatmap-on" } or { "tod.heatmap-off" }
-  w.tod_titlebar.tod_heatmap_badge.style.font_color = hm and { 0.55, 0.82, 0.42 } or { 0.62, 0.64, 0.68 }
+  local titlebar = w.tod_titlebar
+  if titlebar and titlebar.valid then
+    local heatmap_badge = titlebar.tod_heatmap_badge
+    if not (heatmap_badge and heatmap_badge.valid) then
+      heatmap_badge = titlebar.add({ type = "label", name = "tod_heatmap_badge" })
+      heatmap_badge.style.font = "default-bold"
+    end
+    local hm = heatmap.is_enabled(player.index)
+    heatmap_badge.caption = hm and { "tod.heatmap-on" } or { "tod.heatmap-off" }
+    heatmap_badge.style.font_color = hm and { 0.55, 0.82, 0.42 } or { 0.62, 0.64, 0.68 }
+  end
 end
 
 --- Refresh every player who has the window open (called after a stats tick).

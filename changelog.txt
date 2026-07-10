@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------
+Version: 0.1.8
+Date: 2026-07-10
+  Fixes:
+    - Made the heatmap status badge refresh self-healing for older open windows so it no longer crashes on nil UI elements.
+
+---------------------------------------------------------------------------
 Version: 0.1.7
 Date: 2026-07-10
   Fixes:
