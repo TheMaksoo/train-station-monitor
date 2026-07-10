@@ -28,7 +28,13 @@ Get-ChildItem $src | Where-Object { $_.Name -notin $exclude } | ForEach-Object {
   Copy-Item $_.FullName $tmp -Recurse
 }
 
-Get-ChildItem $mods -Filter "$name_*.zip" | Where-Object { $_.Name -ne "$folderName.zip" } | Remove-Item -Force
+Get-ChildItem $mods -Filter "${name}_*.zip" | Where-Object { $_.Name -ne "$folderName.zip" } | ForEach-Object {
+  try {
+    Remove-Item $_.FullName -Force -ErrorAction Stop
+  } catch {
+    Write-Warning "Could not remove stale archive $($_.Name): $($_.Exception.Message)"
+  }
+}
 
 if (Test-Path $zipOut) {
   Remove-Item $zipOut -Force

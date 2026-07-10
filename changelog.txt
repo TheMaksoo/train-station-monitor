@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------
+Version: 0.1.7
+Date: 2026-07-10
+  Fixes:
+    - Normalized train cargo/fluid quantities before ranking icons, preventing per-tick crashes from non-numeric content values.
+
+---------------------------------------------------------------------------
 Version: 0.1.6
 Date: 2026-07-10
   Improvements:

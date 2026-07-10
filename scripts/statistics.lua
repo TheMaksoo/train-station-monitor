@@ -52,9 +52,21 @@ local NO_LIMIT = 4294967295 -- trains_limit sentinel meaning "no limit set"
 local function count_table_values(t)
   local n = 0
   for _, v in pairs(t or {}) do
-    n = n + (tonumber(v) or 0)
+    if type(v) == "number" then
+      n = n + v
+    elseif type(v) == "table" then
+      n = n + (tonumber(v.amount or v.count or v.quantity) or 0)
+    end
   end
   return n
+end
+
+local function content_quantity(value)
+  if type(value) == "number" then return value end
+  if type(value) == "table" then
+    return tonumber(value.amount or value.count or value.quantity) or 0
+  end
+  return tonumber(value) or 0
 end
 
 local function best_content_icon(train)
@@ -67,13 +79,15 @@ local function best_content_icon(train)
 
   local best_type, best_name, best_count = nil, nil, 0
   for name, count in pairs(items) do
-    if count > best_count then
-      best_type, best_name, best_count = "item", name, count
+    local qty = content_quantity(count)
+    if qty > best_count then
+      best_type, best_name, best_count = "item", name, qty
     end
   end
   for name, count in pairs(fluids) do
-    if count > best_count then
-      best_type, best_name, best_count = "fluid", name, count
+    local qty = content_quantity(count)
+    if qty > best_count then
+      best_type, best_name, best_count = "fluid", name, qty
     end
   end
 
@@ -81,10 +95,10 @@ local function best_content_icon(train)
 
   local parts = {}
   for name, count in pairs(items) do
-    parts[#parts + 1] = { name = name, count = count, type = "item" }
+    parts[#parts + 1] = { name = name, count = content_quantity(count), type = "item" }
   end
   for name, count in pairs(fluids) do
-    parts[#parts + 1] = { name = name, count = count, type = "fluid" }
+    parts[#parts + 1] = { name = name, count = content_quantity(count), type = "fluid" }
   end
   table.sort(parts, function(a, b) return a.count > b.count end)
 
