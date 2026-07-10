@@ -1,0 +1,42 @@
+name: Deploy Website
+
+# ┌──────────────────────────────────────────────────────────┐
+# │  Push to main  →  Deploy web/ to solyx.gg via FTP       │
+# │  Tag  v*       →  Handled by release.yml (mod zip)       │
+# └──────────────────────────────────────────────────────────┘
+#
+# 🔑 REQUIRED SECRETS (same server as karting):
+#   FTP_SERVER    — Namecheap FTP host
+#   FTP_USERNAME  — FTP username
+#   FTP_PASSWORD  — FTP password
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-website
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: 🚀 Deploy to solyx.gg
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy web/ via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server:    ${{ secrets.FTP_SERVER }}
+          username:  ${{ secrets.FTP_USERNAME }}
+          password:  ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./web/
+          server-dir: /public_html/mods/train-station-monitor/
+
+      - name: Summary
+        run: |
+          echo "### 🎉 Website Deployed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://solyx.gg/mods/train-station-monitor/" >> $GITHUB_STEP_SUMMARY

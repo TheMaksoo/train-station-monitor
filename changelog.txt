@@ -1,0 +1,15 @@
+---------------------------------------------------------------------------
+Version: 0.1.0
+Date: 2026-07-10
+  Features:
+    - Zero-config auto-discovery of every train stop (build / mine / rename / clone / blueprint / revive).
+    - Live dashboard grouped by resource, refreshed once per second.
+    - Queue detection: none / present / 1 / 2 / 3+ waiting.
+    - Per-station controls: zoom to station, show assigned train, enable/disable.
+    - Sorting (most waiting, most idle, alphabetical, station count, disabled, resource name).
+    - Filtering (load only, unload only, hide healthy, only queues, only disabled) + resource search.
+    - Optional average wait-time tracking per station/group.
+    - Throughput graph: trains served per minute over the last 10 minutes, per resource group.
+    - Congestion heatmap: opt-in map overlay colouring each station cool-to-hot by average train wait.
+    - No-provider alerts: native Factorio alerts + dashboard badge when a resource has consumers but no available provider.
+    - Top-left button + Ctrl+T keybind. Matches vanilla UI including dark mode.

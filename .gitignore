@@ -1,0 +1,10 @@
+# Factorio mod packaging artifacts
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp

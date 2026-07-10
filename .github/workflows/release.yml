@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Package mod zip
+        run: |
+          FOLDER="train-station-monitor_${{ steps.version.outputs.version }}"
+          mkdir "$FOLDER"
+          rsync -av \
+            --exclude='.git' --exclude='.gitignore' --exclude='*.zip' \
+            --exclude='web/' --exclude='.github/' \
+            . "$FOLDER/"
+          zip -r "${FOLDER}.zip" "$FOLDER"
+          echo "ZIP=${FOLDER}.zip" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP }}
+          body: |
+            ## Train Station Monitor ${{ github.ref_name }}
+
+            ### Install
+            Download the zip and place it in `%APPDATA%\Factorio\mods\`
+
+            See [changelog.txt](https://github.com/${{ github.repository }}/blob/main/changelog.txt) for details.

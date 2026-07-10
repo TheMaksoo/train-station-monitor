@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Train Station Monitor — Factorio 2.0 Mod | Solyx</title>
+  <meta name="description" content="A live, zero-config dashboard that auto-discovers every train stop and visualises the health of your Factorio 2.0 rail network.">
+  <meta property="og:title" content="Train Station Monitor — Factorio 2.0 Mod">
+  <meta property="og:description" content="Zero-config live dashboard for your rail network. Auto-discovers every station, no circuit signals needed.">
+  <meta property="og:image" content="https://solyx.gg/img/common/solyxpfp.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #18171a;
+      --bg2:       #1f1e22;
+      --surface:   #26252a;
+      --border:    #302e36;
+      --gold:      #f2ba47;
+      --gold-dim:  #c4943a;
+      --gold-soft: #ffe0a8;
+      --text:      #e8e4dc;
+      --text-dim:  #a09890;
+      --text-faint:#6b6560;
+      --green:     #8cd16b;
+      --red:       #e05a4a;
+      --teal:      #5bb3b0;
+      --radius:    6px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Titillium Web', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    a { color: var(--gold); text-decoration: none; }
+    a:hover { color: var(--gold-soft); }
+
+    /* ── NAVBAR ─────────────────────────────────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(24,23,26,.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; gap: 24px;
+      padding: 0 24px; height: 58px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 18px; font-weight: 700; color: var(--text); white-space: nowrap;
+    }
+    .nav-logo img { width: 32px; height: 32px; border-radius: 50%; }
+    .nav-links { display: flex; gap: 6px; }
+    .nav-links a {
+      color: var(--text-dim); font-size: 14px; font-weight: 600;
+      padding: 6px 12px; border-radius: var(--radius);
+      transition: color .15s, background .15s;
+    }
+    .nav-links a:hover { color: var(--text); background: var(--surface); }
+    .nav-links a.active { color: var(--gold); }
+    .nav-spacer { flex: 1; }
+    .nav-cta {
+      font-size: 13px; font-weight: 700; padding: 7px 16px;
+      border-radius: var(--radius); background: var(--gold);
+      color: #1a1600; transition: background .15s;
+    }
+    .nav-cta:hover { background: var(--gold-soft); color: #1a1600; }
+
+    /* ── HERO ────────────────────────────────────────────────────── */
+    .hero {
+      padding: 80px 24px 60px;
+      text-align: center;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(242,186,71,.12) 0%, transparent 70%);
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+      color: var(--gold); background: rgba(242,186,71,.1); border: 1px solid rgba(242,186,71,.3);
+      border-radius: 20px; padding: 5px 14px; margin-bottom: 22px;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 56px); font-weight: 700;
+      line-height: 1.12; color: var(--text); margin-bottom: 18px;
+    }
+    .hero h1 span { color: var(--gold); }
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 20px); color: var(--text-dim);
+      max-width: 620px; margin: 0 auto 36px; line-height: 1.6;
+    }
+    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: inherit; font-size: 15px; font-weight: 700;
+      padding: 12px 24px; border-radius: var(--radius); cursor: pointer;
+      border: none; transition: all .15s; text-decoration: none;
+    }
+    .btn-primary { background: var(--gold); color: #1a1600; }
+    .btn-primary:hover { background: var(--gold-soft); color: #1a1600; }
+    .btn-secondary {
+      background: var(--surface); color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: #302e38; color: var(--text); }
+
+    /* ── STATS STRIP ──────────────────────────────────────────────── */
+    .stats {
+      display: flex; justify-content: center; gap: 0;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .stat {
+      flex: 1; max-width: 220px;
+      text-align: center; padding: 24px 16px;
+      border-right: 1px solid var(--border);
+    }
+    .stat:last-child { border-right: none; }
+    .stat-val { font-size: 28px; font-weight: 700; color: var(--gold); }
+    .stat-label { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+
+    /* ── SECTION WRAPPER ──────────────────────────────────────────── */
+    .section { max-width: 1100px; margin: 0 auto; padding: 64px 24px; }
+    .section-label {
+      font-size: 12px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 10px;
+    }
+    .section-title { font-size: clamp(24px, 3vw, 36px); font-weight: 700; margin-bottom: 14px; }
+    .section-sub { font-size: 16px; color: var(--text-dim); max-width: 580px; line-height: 1.65; }
+
+    /* ── LIVE DEMO ────────────────────────────────────────────────── */
+    .demo-section {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px;
+    }
+    .demo-section .section { padding: 0; }
+    .demo-header { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
+    .demo-frame-wrap {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 80px rgba(0,0,0,.6);
+    }
+    .demo-frame {
+      width: 100%; height: 680px;
+      border: none; display: block;
+    }
+    .demo-note {
+      margin-top: 14px;
+      font-size: 13px; color: var(--text-faint); text-align: center;
+    }
+    .live-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green); margin-right: 6px;
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+    /* ── FEATURE GRID ─────────────────────────────────────────────── */
+    .features { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 40px; }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px;
+      transition: border-color .2s, transform .2s;
+    }
+    .feature-card:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+    .feature-icon { font-size: 28px; margin-bottom: 14px; }
+    .feature-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .feature-desc { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+
+    /* ── INSTALL SECTION ──────────────────────────────────────────── */
+    .install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 40px; }
+    @media(max-width: 680px) { .install-grid { grid-template-columns: 1fr; } }
+    .install-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px;
+    }
+    .install-step {
+      display: flex; gap: 14px; margin-bottom: 18px; align-items: flex-start;
+    }
+    .install-step:last-child { margin-bottom: 0; }
+    .step-num {
+      flex: none; width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(242,186,71,.15); border: 1px solid var(--gold-dim);
+      color: var(--gold); font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-text { font-size: 14px; color: var(--text-dim); line-height: 1.6; padding-top: 2px; }
+    .step-text strong { color: var(--text); }
+    .code-block {
+      background: #0e0d10; border: 1px solid var(--border);
+      border-radius: 4px; padding: 10px 14px; margin-top: 8px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px; color: var(--gold-soft);
+      white-space: pre-wrap; word-break: break-all;
+    }
+    .install-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .install-tag {
+      font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 3px; background: rgba(242,186,71,.12); color: var(--gold);
+    }
+
+    /* ── NAMING CONVENTION ────────────────────────────────────────── */
+    .naming-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--gold); border-radius: var(--radius);
+      padding: 24px 28px; margin-top: 32px;
+    }
+    .naming-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+    .naming-box p { font-size: 14px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.6; }
+    .station-name {
+      font-family: 'Consolas', monospace; font-size: 14px;
+      color: var(--gold-soft); background: #0e0d10;
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 10px 14px; display: block; margin-bottom: 6px;
+    }
+    .station-name .tag { color: #5bb3b0; }
+    .station-name .mode { color: var(--green); }
+    .station-name .comment { color: var(--text-faint); }
+
+    /* ── ARCHITECTURE ─────────────────────────────────────────────── */
+    .arch-table { width: 100%; border-collapse: collapse; margin-top: 32px; font-size: 14px; }
+    .arch-table th {
+      text-align: left; padding: 10px 16px;
+      background: var(--surface); color: var(--text-dim);
+      font-size: 12px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .arch-table td {
+      padding: 12px 16px; border-bottom: 1px solid rgba(48,46,54,.6);
+      vertical-align: top; color: var(--text-dim); line-height: 1.5;
+    }
+    .arch-table tr:last-child td { border-bottom: none; }
+    .arch-table td:first-child { font-family: 'Consolas', monospace; color: var(--gold-soft); white-space: nowrap; }
+
+    /* ── FOOTER ───────────────────────────────────────────────────── */
+    .footer {
+      border-top: 1px solid var(--border);
+      background: var(--bg2);
+      padding: 40px 24px;
+    }
+    .footer-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: var(--text); }
+    .footer-logo img { width: 28px; height: 28px; border-radius: 50%; }
+    .footer-copy { font-size: 13px; color: var(--text-faint); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 13px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--gold); }
+
+    /* ── RESPONSIVE ───────────────────────────────────────────────── */
+    @media(max-width: 600px) {
+      .stats { flex-wrap: wrap; }
+      .stat { flex: 1 1 45%; }
+      .demo-frame { height: 480px; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAVBAR ──────────────────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="https://solyx.gg">
+      <img src="https://solyx.gg/img/common/solyxpfp.png" alt="Solyx">
+      Solyx
+    </a>
+    <div class="nav-links">
+      <a href="https://solyx.gg">Home</a>
+      <a href="#" class="active">Mods</a>
+      <a href="https://solyx.gg/contact.php">Contact</a>
+    </div>
+    <div class="nav-spacer"></div>
+    <a class="nav-cta btn" href="https://mods.factorio.com/mod/train-station-monitor" target="_blank">
+      ↓ Download Mod
+    </a>
+  </div>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-badge">🚂 Factorio 2.0 Mod</div>
+  <h1>Train Station<br><span>Monitor</span></h1>
+  <p class="hero-sub">
+    A live, zero-configuration dashboard that auto-discovers every train stop
+    and visualises the health of your rail network. No circuit signals, no combinators.
+  </p>
+  <div class="hero-btns">
+    <a class="btn btn-primary" href="https://mods.factorio.com/mod/train-station-monitor" target="_blank">
+      ↓ Get on Mod Portal
+    </a>
+    <a class="btn btn-secondary" href="https://github.com/TheMaksoo/train-station-monitor" target="_blank">
+      ⌥ View on GitHub
+    </a>
+    <a class="btn btn-secondary" href="#demo">
+      ▶ Try the Demo
+    </a>
+  </div>
+</section>
+
+<!-- ── STATS ───────────────────────────────────────────────────────── -->
+<div class="stats">
+  <div class="stat"><div class="stat-val">0</div><div class="stat-label">Config required</div></div>
+  <div class="stat"><div class="stat-val">1s</div><div class="stat-label">Refresh rate</div></div>
+  <div class="stat"><div class="stat-val">1000+</div><div class="stat-label">Stations supported</div></div>
+  <div class="stat"><div class="stat-val">2.0</div><div class="stat-label">Factorio version</div></div>
+</div>
+
+<!-- ── LIVE DEMO ───────────────────────────────────────────────────── -->
+<div class="demo-section" id="demo">
+  <div class="section">
+    <div class="demo-header">
+      <div>
+        <div class="section-label">Interactive Preview</div>
+        <div class="section-title"><span class="live-dot"></span> Try it live</div>
+        <p class="section-sub">
+          This is the actual dashboard UI. Click rows to expand, toggle filters, sort columns —
+          exactly what you'll see in-game.
+        </p>
+      </div>
+    </div>
+    <div class="demo-frame-wrap">
+      <iframe
+        class="demo-frame"
+        src="./demo.html"
+        title="Train Station Monitor interactive demo"
+        loading="lazy"
+      ></iframe>
+    </div>
+    <p class="demo-note">
+      💡 Try sorting by <strong>Least Saturated</strong> to see which resources need attention first.
+      Expand a row to see throughput graphs and per-station controls.
+    </p>
+  </div>
+</div>
+
+<!-- ── FEATURES ────────────────────────────────────────────────────── -->
+<section class="section" id="features">
+  <div class="section-label">What it does</div>
+  <div class="section-title">Everything you need to manage your rail network</div>
+  <p class="section-sub">Built for large factories — scales from your first train to a 1000-station megabase without any manual setup.</p>
+
+  <div class="features">
+    <div class="feature-card">
+      <div class="feature-icon">📡</div>
+      <div class="feature-title">Zero-config auto-discovery</div>
+      <div class="feature-desc">
+        Every train stop is tracked the moment it's built, removed, renamed, cloned, or revived via blueprint.
+        No setup. No station IDs. No circuit wiring required.
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Grouped resource view</div>
+      <div class="feature-desc">
+        Stations are automatically grouped by resource (item or fluid). See load vs unload counts,
+        trains present, queue saturation, and average wait time — all in one row.
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🗺️</div>
+      <div class="feature-title">Congestion heatmap</div>
+      <div class="feature-desc">
+        Opt-in map overlay that draws a colour-coded circle at every tracked station.
+        Cool (green) = trains flowing. Hot (red) = starved. Spot problems at a glance.
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📉</div>
+      <div class="feature-title">Throughput graphs</div>
+      <div class="feature-desc">
+        Expand any resource to see a 10-minute trains-served-per-minute history,
+        averaged and peak values — no external tools needed.
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚠️</div>
+      <div class="feature-title">Supply alerts</div>
+      <div class="feature-desc">
+        Native Factorio alerts fire when a resource has consumers but no available provider —
+        same alert panel as low-power warnings, with a count badge in the dashboard.
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Per-station controls</div>
+      <div class="feature-desc">
+        Zoom to station, open the assigned train, or enable/disable a stop directly from the dashboard.
+        Disabling sets the train limit to 0 — no new trains dispatched.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── INSTALL ──────────────────────────────────────────────────────── -->
+<section style="background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div class="section" id="install">
+    <div class="section-label">Get started</div>
+    <div class="section-title">Installation</div>
+
+    <div class="install-grid">
+      <!-- Mod Portal -->
+      <div class="install-card">
+        <div class="install-title">
+          Mod Portal
+          <span class="install-tag">Recommended</span>
+        </div>
+        <div class="install-step">
+          <div class="step-num">1</div>
+          <div class="step-text">Open Factorio → click <strong>Mods</strong> in the main menu</div>
+        </div>
+        <div class="install-step">
+          <div class="step-num">2</div>
+          <div class="step-text">Search for <strong>Train Station Monitor</strong></div>
+        </div>
+        <div class="install-step">
+          <div class="step-num">3</div>
+          <div class="step-text">Click <strong>Install</strong> → <strong>Apply and restart</strong></div>
+        </div>
+        <div class="install-step">
+          <div class="step-num">4</div>
+          <div class="step-text">Look for the <strong>🚂 locomotive button</strong> top-left, or press <strong>Ctrl + T</strong></div>
+        </div>
+      </div>
+
+      <!-- Manual -->
+      <div class="install-card">
+        <div class="install-title">Manual install</div>
+        <div class="install-step">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            Download <strong>train-station-monitor_0.1.0.zip</strong> from GitHub releases
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            Drop the zip into your Factorio mods folder:
+            <div class="code-block">%APPDATA%\Factorio\mods\</div>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="step-num">3</div>
+          <div class="step-text">Launch Factorio → <strong>Mods</strong> → enable it → restart</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Naming convention -->
+    <div class="naming-box">
+      <h3>🏷️ Station naming convention</h3>
+      <p>
+        The mod discovers stations whose names contain a rich-text icon tag followed by
+        <code style="background:#0e0d10;padding:2px 6px;border-radius:3px;font-size:13px;color:var(--gold-soft)">Load</code> or
+        <code style="background:#0e0d10;padding:2px 6px;border-radius:3px;font-size:13px;color:var(--gold-soft)">Unload</code>.
+        Depots, junctions, and any other stops without this pattern are silently ignored.
+      </p>
+      <code class="station-name"><span class="tag">[img=item/iron-plate]</span> <span class="mode">Load</span>          <span class="comment">← load station</span></code>
+      <code class="station-name"><span class="tag">[img=item/iron-plate]</span> <span class="mode">Unload</span>        <span class="comment">← unload station</span></code>
+      <code class="station-name"><span class="tag">[img=fluid/crude-oil]</span>  <span class="mode">Load</span>          <span class="comment">← fluids work too</span></code>
+      <code class="station-name"><span class="tag">[img=item/copper-plate]</span> <span class="mode">Unload</span> #2   <span class="comment">← suffixes like "#2" are fine</span></code>
+    </div>
+  </div>
+</section>
+
+<!-- ── ARCHITECTURE ─────────────────────────────────────────────────── -->
+<section class="section" id="architecture">
+  <div class="section-label">Under the hood</div>
+  <div class="section-title">Clean architecture</div>
+  <p class="section-sub">
+    Each module has exactly one responsibility. <code style="font-size:14px;color:var(--gold-soft);background:#0e0d10;padding:2px 6px;border-radius:3px">events.lua</code> is
+    the only file that calls <code style="font-size:14px;color:var(--gold-soft);background:#0e0d10;padding:2px 6px;border-radius:3px">script.on_event</code> — everything else exposes plain functions.
+  </p>
+
+  <table class="arch-table">
+    <thead>
+      <tr>
+        <th>Module</th>
+        <th>Responsibility</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>control.lua</td><td>Entry point — loads modules, calls <code>events.register()</code>. Nothing else.</td></tr>
+      <tr><td>scripts/parser.lua</td><td>Pure, stateless name parsing → <code>{kind, proto, mode, group_key}</code></td></tr>
+      <tr><td>scripts/cache.lua</td><td>Owns the entire <code>storage</code> schema. All state access goes through here.</td></tr>
+      <tr><td>scripts/discovery.lua</td><td>Keeps cache in sync via events; one full scan on init only.</td></tr>
+      <tr><td>scripts/statistics.lua</td><td>Queue detection, saturation, enable/disable, average-wait tracking.</td></tr>
+      <tr><td>scripts/throughput.lua</td><td>Trains-served-per-minute ring buffer (10-min window, per group).</td></tr>
+      <tr><td>scripts/heatmap.lua</td><td>Congestion map overlay — per-player, opt-in, rendering API.</td></tr>
+      <tr><td>scripts/alerts.lua</td><td>"No available provider" alerts — native Factorio + dashboard badge.</td></tr>
+      <tr><td>scripts/rendering.lua</td><td>Sort / filter logic + row widget construction (view only, no state).</td></tr>
+      <tr><td>scripts/gui.lua</td><td>Owns the button + window; builds, opens, refreshes, routes clicks.</td></tr>
+      <tr><td>scripts/events.lua</td><td>Single event-wiring hub. Defines the cadence (1s stats, 1min throughput roll).</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── FOOTER ───────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <img src="https://solyx.gg/img/common/solyxpfp.png" alt="Solyx">
+      Solyx
+    </div>
+    <div class="footer-links">
+      <a href="https://mods.factorio.com/mod/train-station-monitor" target="_blank">Mod Portal</a>
+      <a href="https://github.com/TheMaksoo/train-station-monitor" target="_blank">GitHub</a>
+      <a href="https://solyx.gg/contact.php">Contact</a>
+    </div>
+    <div class="footer-copy">© 2026 TheMaksoo. MIT License.</div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Titillium Web', system-ui, sans-serif;
+    background: radial-gradient(120% 120% at 50% 0%, #2f2d27 0%, #201f1a 70%); }
+  a { color: #f2ba47; } a:hover { color: #ffca8c; }
+  ::-webkit-scrollbar { width: 12px; }
+  ::-webkit-scrollbar-track { background: #2b2a28; }
+  ::-webkit-scrollbar-thumb { background: #56544e; border: 2px solid #2b2a28; border-radius: 6px; }
+  @keyframes tsm-pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+  input[type=checkbox] { accent-color: #e59b3a; width: 15px; height: 15px; cursor: pointer; }
+  select, .tsm-field { font-family: inherit; }
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;">
+  <div style="width:920px;max-width:100%;background:#414040;border-radius:3px;
+    border:1px solid #191817;box-shadow:inset 0 1px 0 #5f5d58, inset 0 -2px 0 #1f1e1c, 0 12px 40px rgba(0,0,0,.55);
+    display:flex;flex-direction:column;overflow:hidden;">
+
+    <!-- Titlebar -->
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 12px 8px;background:#3a3937;border-bottom:1px solid #1f1e1c;">
+      <div style="width:26px;height:26px;border-radius:3px;background:linear-gradient(#5b5a56,#42413d);border:1px solid #191817;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 #6e6c66;">
+        <div style="width:15px;height:11px;background:#e59b3a;border-radius:2px 2px 1px 1px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25);"></div>
+      </div>
+      <div style="font-size:19px;font-weight:700;color:#ffca8c;letter-spacing:.2px;">Train Station Monitor</div>
+      <div style="font-size:13px;color:#a49d91;font-weight:600;padding-top:3px;">{{ resourceCount }} resources · {{ stationCount }} stations</div>
+      <sc-if value="{{ hasAlerts }}" hint-placeholder-val="{{ false }}">
+        <span style="font-size:12px;font-weight:700;color:#f6e2d6;background:#a33a2c;border:1px solid #d0483c;border-radius:3px;padding:2px 8px;">{{ alertBadge }}</span>
+      </sc-if>
+      <div style="flex:1;"></div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#8cd16b;letter-spacing:1px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#8cd16b;animation:tsm-pulse 1.6s ease-in-out infinite;"></span>LIVE
+      </div>
+      <div style="width:26px;height:26px;border-radius:3px;background:linear-gradient(#c0483c,#9c3a30);border:1px solid #191817;display:flex;align-items:center;justify-content:center;color:#ffe1d8;font-weight:700;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.2);">✕</div>
+    </div>
+
+    <!-- No-provider alerts -->
+    <sc-if value="{{ hasAlerts }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#38292a;border-bottom:1px solid #1f1e1c;">
+        <div onClick="{{ onToggleAlerts }}" style="display:flex;align-items:center;gap:9px;padding:8px 14px;cursor:pointer;border-left:3px solid #d0483c;">
+          <span style="color:#e8654f;font-size:15px;">⚠</span>
+          <span style="font-size:13px;font-weight:700;color:#f0d9c8;">{{ alertCount }}</span>
+          <span style="font-size:12px;color:#c9a99c;">— resources with no available provider</span>
+          <div style="flex:1;"></div>
+          <span style="font-size:11px;color:#c9a99c;">{{ alertChevron }}</span>
+        </div>
+        <sc-if value="{{ alertsOpen }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:0 14px 8px 20px;display:flex;flex-direction:column;gap:3px;">
+            <sc-for list="{{ alerts }}" as="al" hint-placeholder-count="2">
+              <div onClick="{{ al.onClick }}" title="Jump to resource" style="display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:3px;cursor:pointer;background:rgba(0,0,0,.18);" style-hover="background:rgba(0,0,0,.34);">
+                <span style="width:8px;height:8px;border-radius:50%;flex:none;background:{{ al.color }};"></span>
+                <span style="width:15px;height:15px;border-radius:2px;flex:none;border:1px solid rgba(0,0,0,.4);background:{{ al.chip }};"></span>
+                <span style="font-size:13px;font-weight:600;color:#ece5d9;">{{ al.name }}</span>
+                <span style="font-size:12px;color:#c9a99c;">{{ al.msg }}</span>
+                <div style="flex:1;"></div>
+                <span style="font-size:11px;color:#e8a06f;">Open ↗</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- Toolbar -->
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:9px 12px;background:#323130;border-bottom:1px solid #1f1e1c;box-shadow:inset 0 1px 0 #4a4945;">
+      <div onClick="{{ onToggleHeat }}" title="Toggle congestion heatmap" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;cursor:pointer;padding:5px 10px;border-radius:2px;border:1px solid {{ heatBorder }};background:{{ heatBg }};color:{{ heatFg }};box-shadow:inset 0 1px 0 rgba(255,255,255,.14);">▦ Heatmap</div>
+      <div style="width:1px;height:22px;background:#1f1e1c;box-shadow:1px 0 0 #4a4945;"></div>
+      <div style="display:flex;align-items:center;gap:7px;">
+        <span style="font-size:13px;font-weight:600;color:#c8c1b5;">Sort</span>
+        <select value="{{ sortValue }}" onChange="{{ onSort }}" style="background:#191817;color:#e4dcd0;border:1px solid #000;border-radius:2px;padding:4px 8px;font-size:13px;box-shadow:inset 0 1px 2px rgba(0,0,0,.6);">
+          <option value="waiting">Least saturated</option>
+          <option value="saturated">Most saturated</option>
+          <option value="idle">Most idle</option>
+          <option value="alpha">Alphabetical</option>
+          <option value="stations">Station count</option>
+          <option value="disabled">Disabled first</option>
+          <option value="resource">Resource name</option>
+        </select>
+      </div>
+      <div style="width:1px;height:22px;background:#1f1e1c;box-shadow:1px 0 0 #4a4945;"></div>
+      <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:#d3ccc0;cursor:pointer;"><input type="checkbox" checked="{{ fLoadOnly }}" onChange="{{ onFilterLoad }}">Load only</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:#d3ccc0;cursor:pointer;"><input type="checkbox" checked="{{ fUnloadOnly }}" onChange="{{ onFilterUnload }}">Unload only</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:#d3ccc0;cursor:pointer;"><input type="checkbox" checked="{{ fHideHealthy }}" onChange="{{ onFilterHealthy }}">Hide saturated</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:#d3ccc0;cursor:pointer;"><input type="checkbox" checked="{{ fOnlyQueues }}" onChange="{{ onFilterQueues }}">Only queues</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:#d3ccc0;cursor:pointer;"><input type="checkbox" checked="{{ fOnlyDisabled }}" onChange="{{ onFilterDisabled }}">Only disabled</label>
+      <div style="flex:1;"></div>
+      <input class="tsm-field" value="{{ search }}" onInput="{{ onSearch }}" placeholder="Search resource…" style="background:#191817;color:#e4dcd0;border:1px solid #000;border-radius:2px;padding:5px 9px;font-size:13px;width:170px;box-shadow:inset 0 1px 2px rgba(0,0,0,.6);"/>
+    </div>
+
+    <!-- Congestion heatmap -->
+    <sc-if value="{{ showHeat }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:12px 14px;background:#2c2b29;border-bottom:1px solid #1f1e1c;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#c8c1b5;">Supply heatmap</span>
+          <span style="font-size:11px;color:#8b847a;">time until the next train</span>
+          <div style="flex:1;"></div>
+          <span style="font-size:10px;color:#8b847a;">flowing</span>
+          <div style="width:130px;height:9px;border-radius:2px;background:linear-gradient(90deg,#4a965a,#e0b23a,#d0483c);border:1px solid #191817;"></div>
+          <span style="font-size:10px;color:#8b847a;">starved</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(124px,1fr));gap:6px;">
+          <sc-for list="{{ heatTiles }}" as="tile" hint-placeholder-count="12">
+            <div onClick="{{ tile.onClick }}" title="{{ tile.tip }}" style="cursor:pointer;border-radius:3px;border:1px solid #191817;padding:8px 9px;background:{{ tile.bg }};box-shadow:inset 0 1px 0 rgba(255,255,255,.12);">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="width:15px;height:15px;border-radius:2px;flex:none;border:1px solid rgba(0,0,0,.4);background:{{ tile.chip }};"></span>
+                <span style="font-size:12px;font-weight:600;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ tile.name }}</span>
+              </div>
+              <div style="font-size:15px;font-weight:700;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.55);margin-top:5px;">{{ tile.value }}</div>
+              <div style="font-size:10px;color:rgba(255,255,255,.82);text-shadow:0 1px 1px rgba(0,0,0,.55);">{{ tile.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Column header -->
+    <div style="display:grid;grid-template-columns:minmax(230px,1fr) 54px 60px 64px 64px 92px 66px 66px;align-items:center;padding:7px 14px;background:#2c2b2a;border-bottom:1px solid #1f1e1c;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9b9488;">
+      <div>Resource</div>
+      <div style="text-align:center;" title="Stations that LOAD this resource (send it out)">Load</div>
+      <div style="text-align:center;" title="Stations that UNLOAD this resource (receive it)">Unload</div>
+      <div style="text-align:center;" title="Total stations in this group">Stations</div>
+      <div style="text-align:center;" title="Stations with a train being served right now">Present</div>
+      <div style="text-align:center;" title="Trains waiting / total that can wait across the group. A full green bar means the group is fully saturated — well supplied.">Saturation</div>
+      <div style="text-align:center;" title="Stations currently disabled">Disabled</div>
+      <div style="text-align:center;" title="Average time a train waits before being served">Avg wait</div>
+    </div>
+
+    <!-- Rows -->
+    <div style="background:#383735;max-height:560px;overflow-y:auto;">
+      <sc-for list="{{ rows }}" as="row" hint-placeholder-count="10">
+        <sc-if value="{{ row.isGroup }}" hint-placeholder-val="{{ true }}">
+          <div onClick="{{ row.onToggle }}" style="display:grid;grid-template-columns:minmax(230px,1fr) 54px 60px 64px 64px 92px 66px 66px;align-items:center;padding:8px 14px;border-bottom:1px solid #2f2e2c;cursor:pointer;border-left:3px solid {{ row.accent }};" style-hover="background:#46453f;">
+            <div style="display:flex;align-items:center;gap:9px;min-width:0;">
+              <span style="color:#8b847a;font-size:11px;width:10px;">{{ row.arrow }}</span>
+              <span style="width:22px;height:22px;border-radius:3px;flex:none;border:1px solid #191817;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -3px 4px rgba(0,0,0,.3);background:{{ row.chip }};"></span>
+              <span style="font-size:14px;font-weight:600;color:#ece5d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ row.name }}</span>
+            </div>
+            <div style="text-align:center;font-size:13px;color:#c3bcb0;">{{ row.load }}</div>
+            <div style="text-align:center;font-size:13px;color:#c3bcb0;">{{ row.unload }}</div>
+            <div style="text-align:center;font-size:13px;color:#c3bcb0;">{{ row.total }}</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:{{ row.presentColor }};">{{ row.present }}</div>
+            <div style="display:flex;align-items:center;gap:7px;justify-content:center;">
+              <div style="width:44px;height:8px;border-radius:2px;background:#26251f;border:1px solid #191817;overflow:hidden;flex:none;">
+                <div style="height:100%;width:{{ row.fillW }};background:{{ row.satColor }};"></div>
+              </div>
+              <span style="font-size:12px;font-weight:700;color:{{ row.satColor }};min-width:30px;">{{ row.satText }}</span>
+            </div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:{{ row.disabledColor }};">{{ row.disabled }}</div>
+            <div style="text-align:center;font-size:12px;color:#9b9488;">{{ row.waitTxt }}</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ row.isChart }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:18px;padding:11px 14px 13px 30px;background:#2a2927;border-bottom:1px solid #262523;border-left:3px solid {{ row.accent }};">
+            <div style="min-width:150px;flex:none;">
+              <div style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#8b847a;">Throughput · last 10 min</div>
+              <div style="display:flex;align-items:baseline;gap:6px;margin-top:3px;">
+                <span style="font-size:23px;font-weight:700;color:#ece5d9;">{{ row.avg }}</span>
+                <span style="font-size:12px;color:#9b9488;">trains/min</span>
+              </div>
+              <div style="font-size:11px;color:#8b847a;margin-top:1px;">peak {{ row.peak }}/min · {{ row.totalTrains }} trains total</div>
+            </div>
+            <div style="flex:1;display:flex;align-items:flex-end;gap:3px;height:48px;border-bottom:1px solid #3a3835;padding-bottom:1px;">
+              <sc-for list="{{ row.bars }}" as="bar" hint-placeholder-count="10">
+                <div title="{{ bar.tip }}" style="flex:1;min-width:6px;height:{{ bar.h }};min-height:3px;border-radius:2px 2px 0 0;background:{{ row.accent }};opacity:{{ bar.op }};"></div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ row.isStation }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:10px;padding:6px 14px 6px 30px;background:#2f2e2c;border-bottom:1px solid #2a2927;border-left:3px solid {{ row.dotColor }};">
+            <span style="width:8px;height:8px;border-radius:50%;flex:none;background:{{ row.dotColor }};"></span>
+            <span style="font-size:13px;color:#d8d1c5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">{{ row.name }}</span>
+            <span style="font-size:10px;font-weight:700;color:#8b847a;border:1px solid #4a4945;border-radius:2px;padding:0 4px;flex:none;">{{ row.badge }}</span>
+            <div style="flex:1;"></div>
+            <span style="font-size:12px;font-weight:600;color:{{ row.stateColor }};white-space:nowrap;width:58px;text-align:right;">{{ row.stateText }}</span>
+            <div title="{{ row.satTip }}" style="display:flex;align-items:center;gap:7px;flex:none;">
+              <div style="width:80px;height:9px;border-radius:2px;background:#26251f;border:1px solid #191817;overflow:hidden;">
+                <div style="height:100%;width:{{ row.fillW }};background:{{ row.dotColor }};"></div>
+              </div>
+              <span style="font-size:12px;font-weight:700;color:{{ row.dotColor }};width:34px;">{{ row.satText }}</span>
+            </div>
+            <div style="display:flex;gap:4px;flex:none;">
+              <button onClick="{{ row.onZoom }}" title="Zoom to station" style="width:26px;height:24px;border:1px solid #191817;border-radius:3px;background:linear-gradient(#5c5b57,#46453f);color:#e4dcd0;cursor:pointer;font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.16);" style-hover="background:linear-gradient(#6b6a64,#514f4a);">📍</button>
+              <button onClick="{{ row.onTrain }}" title="Show assigned train" style="width:26px;height:24px;border:1px solid #191817;border-radius:3px;background:linear-gradient(#5c5b57,#46453f);color:#e4dcd0;cursor:pointer;font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.16);" style-hover="background:linear-gradient(#6b6a64,#514f4a);">🚂</button>
+              <button onClick="{{ row.onToggle }}" title="Enable / disable station" style="width:26px;height:24px;border:1px solid #191817;border-radius:3px;background:{{ row.toggleBg }};color:{{ row.toggleFg }};cursor:pointer;font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.16);">⚡</button>
+            </div>
+          </div>
+        </sc-if>
+      </sc-for>
+      <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:30px;text-align:center;color:#8b847a;font-size:13px;">No stations match the current filters.</div>
+      </sc-if>
+    </div>
+
+    <!-- Footer + legend -->
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:7px 14px;background:#323130;border-top:1px solid #1f1e1c;box-shadow:inset 0 1px 0 #4a4945;font-size:11px;color:#8b847a;">
+      <span>Auto-refresh · 1s</span>
+      <span style="color:#5c5a54;">|</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:2px;background:#9ea3ad;"></span>starved</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:2px;background:#f2ba47;"></span>filling</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:2px;background:#8cd16b;"></span>saturated</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:2px;background:#8c66b8;"></span>disabled</span>
+      <div style="flex:1;"></div>
+      <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+        <span style="color:#ffca8c;font-weight:600;font-size:12px;">{{ toast }}</span>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  // ---- state ------------------------------------------------------------
+  state = {
+    sort: 'saturated',
+    search: '',
+    filters: { load_only:false, unload_only:false, hide_healthy:false, only_queues:false, only_disabled:false },
+    expanded: { 'item/iron-plate': true },
+    showHeat: true,
+    alertsOpen: true,
+    toast: null,
+    groups: this.seed(),
+  };
+
+  // Sample network. In the real mod this comes from the live station cache.
+  // Each station: served (train at platform now), waiting (trains queued),
+  // cap (how many trains CAN wait here = train limit), disabled.
+  seed() {
+    const S = (name, mode, o={}) => ({ name, mode, served:!!o.served, waiting:o.waiting||0, cap:o.cap||3, disabled:!!o.disabled });
+    return [
+      { key:'item/iron-plate', proto:'Iron Plate', chip:'#c3c7cf', waitSec:52, stations:[
+        S('North Smelter','load',{served:true,waiting:2,cap:3}), S('South Smelter','load',{served:true,waiting:3,cap:3}),
+        S('Outpost 7','unload',{waiting:1,cap:3}), S('Outpost 19','unload',{waiting:0,cap:2}),
+        S('Main Bus Buffer','unload',{served:true,waiting:2,cap:4}), S('Rail Yard 3','load',{disabled:true,cap:2}) ]},
+      { key:'item/copper-plate', proto:'Copper Plate', chip:'#d98b52', waitSec:18, stations:[
+        S('Copper Smelter A','load',{served:true,waiting:2,cap:2}), S('Copper Smelter B','load',{served:true,waiting:3,cap:3}),
+        S('Wire Factory','unload',{waiting:1,cap:3}), S('Outpost 4','unload',{served:true,waiting:2,cap:3}) ]},
+      { key:'item/steel-plate', proto:'Steel Plate', chip:'#8f96a3', waitSec:0, stations:[
+        S('Steel Furnace','load',{waiting:0,cap:3}), S('Rail Depot','unload',{waiting:0,cap:2}), S('LDS Assembly','unload',{waiting:0,cap:3}) ]},
+      { key:'item/electronic-circuit', proto:'Electronic Circuit', chip:'#4fae5a', waitSec:12, stations:[
+        S('Green Circuit A','load',{served:true,waiting:3,cap:3}), S('Green Circuit B','load',{served:true,waiting:3,cap:3}),
+        S('Mall Intake','unload',{served:true,waiting:2,cap:3}), S('Science Bus','unload',{served:true,waiting:3,cap:4}), S('Blue Circuit Feed','unload',{served:true,waiting:2,cap:2}) ]},
+      { key:'item/advanced-circuit', proto:'Advanced Circuit', chip:'#c0483c', waitSec:0, stations:[
+        S('Red Circuit A','load',{disabled:true,cap:3}), S('Red Circuit B','load',{disabled:true,cap:3}), S('Module Plant','unload',{disabled:true,cap:2}) ]},
+      { key:'fluid/crude-oil', proto:'Crude Oil', chip:'#33323a', waitSec:31, stations:[
+        S('Oil Field 1','load',{served:true,waiting:1,cap:3}), S('Oil Field 2','load',{served:true,waiting:2,cap:3}),
+        S('Refinery Intake','unload',{waiting:0,cap:3}), S('Refinery West','unload',{served:true,waiting:1,cap:3}) ]},
+      { key:'fluid/petroleum-gas', proto:'Petroleum Gas', chip:'#9b6fb8', waitSec:44, stations:[
+        S('Refinery Out','load',{served:true,waiting:2,cap:3}), S('Plastic Plant','unload',{waiting:1,cap:3}), S('Sulfur Plant','unload',{served:true,waiting:2,cap:2}) ]},
+      { key:'item/stone', proto:'Stone', chip:'#a99b83', waitSec:0, stations:[
+        S('Quarry 1','load',{waiting:0,cap:3}), S('Brick Kiln','unload',{waiting:0,cap:2}) ]},
+      { key:'item/coal', proto:'Coal', chip:'#2c2c30', waitSec:22, stations:[
+        S('Coal Field N','load',{served:true,waiting:1,cap:3}), S('Coal Field S','load',{waiting:2,cap:3}),
+        S('Plastic Plant Fuel','unload',{served:true,waiting:1,cap:3}), S('Boiler Bank','unload',{waiting:0,cap:2}) ]},
+      { key:'item/iron-ore', proto:'Iron Ore', chip:'#6f8fb0', waitSec:38, stations:[
+        S('Ore Patch 1','load',{served:true,waiting:2,cap:3}), S('Ore Patch 2','load',{served:true,waiting:3,cap:3}), S('Ore Patch 3','load',{served:true,waiting:2,cap:3}),
+        S('Ore Patch 4','load',{waiting:0,cap:2}), S('Smelter Intake A','unload',{waiting:1,cap:4}), S('Smelter Intake B','unload',{served:true,waiting:2,cap:3}),
+        S('Smelter Intake C','unload',{waiting:0,cap:3}) ]},
+      { key:'item/plastic-bar', proto:'Plastic Bar', chip:'#cfc9c1', waitSec:12, stations:[
+        S('Plastic Plant Out','load',{served:true,waiting:2,cap:3}), S('Red Circuit Feed','unload',{served:true,waiting:2,cap:2}) ]},
+      { key:'item/rocket-fuel', proto:'Rocket Fuel', chip:'#3f6b4a', waitSec:0, stations:[
+        S('Silo Intake','unload',{waiting:0,cap:3}), S('Fuel Reserve','unload',{waiting:0,cap:2}) ]},
+      { key:'fluid/sulfuric-acid', proto:'Sulfuric Acid', chip:'#d7cf5a', waitSec:0, stations:[
+        S('Acid Plant','load',{waiting:0,cap:3}), S('Battery Plant','unload',{disabled:true,cap:2}), S('Processing Unit','unload',{waiting:0,cap:3}) ]},
+    ];
+  }
+
+  COLORS = { green:'#8cd16b', lime:'#c2cf5a', amber:'#f2ba47', teal:'#5bb3b0', grey:'#9ea3ad', dim:'#6f6a63', purple:'#8c66b8' };
+
+  // Saturation colour: empty = starved (grey) → full = saturated (green).
+  // A full queue is GOOD — the station is fully supplied.
+  satColor(r) {
+    if (r <= 0) return this.COLORS.grey;
+    if (r >= 1) return this.COLORS.green;
+    if (r >= 0.5) return this.COLORS.lime;
+    return this.COLORS.amber;
+  }
+
+  // Deterministic pseudo-random throughput history (trains served per minute,
+  // last 10 min) derived from the group's key + activity. In the real mod this
+  // comes from throughput.lua's per-group ring buffer.
+  hash(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return (h >>> 0) / 4294967295;
+  }
+  genTput(g, c) {
+    const base = c.served * 1.1 + c.waiting * 0.5 + c.total * 0.25;
+    const out = [];
+    for (let i = 0; i < 10; i++) {
+      if (c.total > 0 && c.disabled === c.total) { out.push(0); continue; }
+      const n = this.hash(g.key + ':' + i);
+      out.push(Math.round(base * (0.5 + 0.8 * n) * 10) / 10);
+    }
+    return out;
+  }
+
+  // Congestion heat scale: 0 (low, green) -> 0.5 (amber) -> 1 (high, red).
+  heat(t) {
+    t = Math.max(0, Math.min(1, t));
+    const S = [[74,150,90],[224,178,58],[208,72,60]];
+    const [a,b,f] = t <= 0.5 ? [S[0],S[1],t/0.5] : [S[1],S[2],(t-0.5)/0.5];
+    const c = a.map((v,i) => Math.round(v + (b[i]-v)*f));
+    return 'rgb('+c[0]+','+c[1]+','+c[2]+')';
+  }
+
+  fmt(sec) {
+    if (!sec) return '–';
+    const m = Math.floor(sec/60), s = sec%60;
+    return m + ':' + String(s).padStart(2,'0');
+  }
+
+  flash(msg) {
+    this.setState({ toast: msg });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ toast: null }), 2400);
+  }
+
+  // ---- derived group stats ---------------------------------------------
+  compute(g) {
+    let load=0, unload=0, loadActive=0, unloadActive=0, served=0, waiting=0, cap=0, disabled=0, idle=0;
+    g.stations.forEach(s => {
+      if (s.mode==='load') { load++; if (!s.disabled) loadActive++; }
+      else                 { unload++; if (!s.disabled) unloadActive++; }
+      if (s.disabled) { disabled++; return; }
+      if (s.served) served++;
+      waiting += s.waiting; cap += s.cap;
+      if (!s.served && s.waiting===0) idle++;
+    });
+    const total = load + unload;
+    const r = cap>0 ? waiting/cap : 0;
+    let accent;
+    if (total>0 && disabled===total) accent = this.COLORS.purple;
+    else if (r>0) accent = this.satColor(r);
+    else if (served>0) accent = this.COLORS.teal;
+    else accent = this.COLORS.grey;
+    return { load, unload, loadActive, unloadActive, total, served, waiting, cap, disabled, idle, r, accent };
+  }
+
+  renderVals() {
+    const C = this.COLORS, f = this.state.filters, needle = this.state.search.trim().toLowerCase();
+
+    // filter
+    let list = this.state.groups.map(g => ({ g, c: this.compute(g) })).filter(({g,c}) => {
+      if (f.load_only && c.load===0) return false;
+      if (f.unload_only && c.unload===0) return false;
+      if (f.only_disabled && c.disabled===0) return false;
+      if (f.only_queues && c.waiting===0) return false;
+      if (f.hide_healthy && c.r>=1) return false;                // hide fully-saturated groups
+      if (needle && !g.proto.toLowerCase().includes(needle)) return false;
+      return true;
+    });
+
+    // sort
+    const cmp = {
+      waiting:   (a,b) => a.c.r - b.c.r,          // least saturated first (needs attention)
+      saturated: (a,b) => b.c.r - a.c.r,          // most saturated first
+      idle:      (a,b) => b.c.idle - a.c.idle,
+      alpha:     (a,b) => a.g.proto.localeCompare(b.g.proto),
+      stations:  (a,b) => b.c.total - a.c.total,
+      disabled:  (a,b) => b.c.disabled - a.c.disabled,
+      resource:  (a,b) => a.g.proto.localeCompare(b.g.proto),
+    }[this.state.sort] || ((a,b)=>0);
+    list.sort(cmp);
+
+    // flatten to rows
+    const rows = [];
+    list.forEach(({g,c}) => {
+      const open = !!this.state.expanded[g.key];
+      rows.push({
+        isGroup:true, isStation:false, key:'g:'+g.key,
+        arrow: open ? '▼' : '▶', chip:g.chip, name:g.proto, accent:c.accent,
+        load:c.load, unload:c.unload, total:c.total,
+        present:c.served, presentColor: c.served>0 ? C.teal : C.dim,
+        satText: c.waiting + '/' + c.cap, satColor: c.accent,
+        fillW: Math.min(100, Math.round(c.r*100)) + '%',
+        disabled:c.disabled, disabledColor: c.disabled>0 ? C.purple : C.dim,
+        waitTxt:this.fmt(g.waitSec),
+        onToggle: () => this.setState(st => ({ expanded: { ...st.expanded, [g.key]: !st.expanded[g.key] } })),
+      });
+      if (open) {
+        // Throughput graph row (10-minute history for this resource).
+        const tput = this.genTput(g, c);
+        const peak = Math.max(1, ...tput);
+        const sum = tput.reduce((a,b)=>a+b,0);
+        rows.push({
+          isGroup:false, isStation:false, isChart:true, key:'c:'+g.key, accent:c.accent,
+          avg: (sum/tput.length).toFixed(1), peak: (Math.round(peak*10)/10),
+          totalTrains: Math.round(sum),
+          bars: tput.map((v,i) => ({
+            h: Math.round(v/peak*100) + '%',
+            op: (0.4 + 0.6*(i/9)).toFixed(2),
+            tip: v + ' trains · ' + (10-i) + ' min ago',
+          })),
+        });
+        g.stations.forEach((s, idx) => {
+          const r = s.cap>0 ? s.waiting/s.cap : 0;
+          const dot = s.disabled ? C.purple : this.satColor(r);
+          const stateText = s.disabled ? 'Disabled' : s.served ? 'Serving' : (s.waiting>0 ? 'Queuing' : 'Idle');
+          const stateColor = s.disabled ? C.purple : s.served ? C.teal : (s.waiting>0 ? dot : C.dim);
+          rows.push({
+            isGroup:false, isStation:true, key:'s:'+g.key+':'+idx,
+            name:s.name, badge: s.mode==='load'?'L':'U', dotColor:dot, stateText, stateColor,
+            satText: s.disabled ? '—' : (s.waiting + '/' + s.cap),
+            satTip: s.waiting + ' waiting · ' + s.cap + ' can wait (train limit)',
+            fillW: s.disabled ? '0%' : (Math.min(100, Math.round(r*100)) + '%'),
+            toggleBg: s.disabled ? 'linear-gradient(#4a3a5e,#372c47)' : 'linear-gradient(#5c5b57,#46453f)',
+            toggleFg: s.disabled ? '#c8a6e8' : '#e4dcd0',
+            onZoom: () => this.flash('📍 Centered map on ' + s.name),
+            onTrain: () => this.flash(s.served ? '🚂 Opened train stopped at ' + s.name : 'No train currently at ' + s.name),
+            onToggle: () => this.setState(st => {
+              const groups = st.groups.map(gr => gr.key!==g.key ? gr : {
+                ...gr, stations: gr.stations.map((ss,i) => i!==idx ? ss : { ...ss, disabled: !ss.disabled, served:false, waiting:0 })
+              });
+              return { groups };
+            }, () => this.flash((s.disabled?'⚡ Enabled ':'⚡ Disabled ') + s.name)),
+          });
+        });
+      }
+    });
+
+    const stationCount = this.state.groups.reduce((n,g)=>n+g.stations.length,0);
+
+    // Supply heatmap — whole network, hottest (most STARVED) first. The heat is
+    // the supply gap: time until the next train. Trains already waiting = 0 gap
+    // (cool/healthy). No queue is fine IF throughput is high (trains flow through
+    // loading/unloading); only a long gap with nothing inbound runs hot.
+    const heatTiles = this.state.groups.map(g => {
+      const c = this.compute(g);
+      const allDis = c.total>0 && c.disabled===c.total;
+      const tput = this.genTput(g, c);
+      const tpm = tput.reduce((a,b)=>a+b,0) / tput.length;   // trains per minute
+      let score, value;
+      if (allDis)            { score = -1; value = 'disabled'; }
+      else if (c.waiting>0)  { score = 0;  value = 'queued'; }          // train already here
+      else if (tpm > 0.05)   { const gap = 60/tpm; score = Math.min(1, gap/90); value = '~'+Math.round(gap)+'s'; }
+      else                   { score = 1;  value = 'no trains'; }       // starved
+      return {
+        key:g.key, chip:g.chip, name:g.proto, score,
+        bg: allDis
+          ? 'linear-gradient(rgba(0,0,0,.25),rgba(0,0,0,.4)), #5a5854'
+          : 'linear-gradient(rgba(0,0,0,.2),rgba(0,0,0,.42)), ' + this.heat(score),
+        value,
+        sub: allDis ? (c.total+' stations') : (tpm.toFixed(1)+'/min · '+c.waiting+' waiting'),
+        tip: g.proto + ' — ' + (c.waiting>0 ? 'train already waiting'
+             : (tpm>0.05 ? 'next train ~'+Math.round(60/tpm)+'s' : 'no trains inbound')),
+        onClick: () => this.setState(st => ({ expanded: { ...st.expanded, [g.key]: true } }),
+                                     () => this.flash('Jumped to ' + g.proto)),
+      };
+    }).sort((a,b) => b.score - a.score);
+
+    const heatOn = this.state.showHeat;
+
+    // No-provider alerts: a resource with consumers (Unload) but no available
+    // provider (Load) — either none built, or every provider disabled.
+    const alerts = [];
+    this.state.groups.forEach(g => {
+      const c = this.compute(g);
+      if (c.unload > 0 && c.load === 0) {
+        alerts.push({ key:g.key, chip:g.chip, name:g.proto, level:'critical', color:'#e8654f',
+          msg:'No load station — nothing provides this resource' });
+      } else if (c.unload > 0 && c.loadActive === 0) {
+        alerts.push({ key:g.key, chip:g.chip, name:g.proto, level:'critical', color:'#e8654f',
+          msg:'All ' + c.load + ' provider' + (c.load>1?'s':'') + ' disabled' });
+      }
+    });
+    alerts.forEach(a => {
+      a.onClick = () => this.setState(st => ({ expanded: { ...st.expanded, [a.key]: true } }),
+                                      () => this.flash('Jumped to ' + a.name));
+    });
+    const alertsOpen = this.state.alertsOpen;
+
+    return {
+      resourceCount: this.state.groups.length,
+      stationCount,
+      hasAlerts: alerts.length > 0,
+      alerts,
+      alertsOpen,
+      alertCount: alerts.length + (alerts.length===1 ? ' supply alert' : ' supply alerts'),
+      alertBadge: '⚠ ' + alerts.length,
+      alertChevron: alertsOpen ? '▲' : '▼',
+      onToggleAlerts: () => this.setState(st => ({ alertsOpen: !st.alertsOpen })),
+      showHeat: heatOn,
+      onToggleHeat: () => this.setState(st => ({ showHeat: !st.showHeat })),
+      heatBg: heatOn ? 'linear-gradient(#7a5a22,#5e4519)' : 'linear-gradient(#5c5b57,#46453f)',
+      heatBorder: heatOn ? '#caa04a' : '#191817',
+      heatFg: heatOn ? '#ffe0a8' : '#d3ccc0',
+      heatTiles,
+      sortValue: this.state.sort,
+      onSort: (e) => this.setState({ sort: e.target.value }),
+      search: this.state.search,
+      onSearch: (e) => this.setState({ search: e.target.value }),
+      fLoadOnly:f.load_only, fUnloadOnly:f.unload_only, fHideHealthy:f.hide_healthy,
+      fOnlyQueues:f.only_queues, fOnlyDisabled:f.only_disabled,
+      onFilterLoad:     (e)=>this.setFilter('load_only', e.target.checked),
+      onFilterUnload:   (e)=>this.setFilter('unload_only', e.target.checked),
+      onFilterHealthy:  (e)=>this.setFilter('hide_healthy', e.target.checked),
+      onFilterQueues:   (e)=>this.setFilter('only_queues', e.target.checked),
+      onFilterDisabled: (e)=>this.setFilter('only_disabled', e.target.checked),
+      rows,
+      isEmpty: rows.length===0,
+      toast: this.state.toast,
+    };
+  }
+
+  setFilter(key, val) {
+    this.setState(st => ({ filters: { ...st.filters, [key]: val } }));
+  }
+}
+</script>
+</body>
+</html>
