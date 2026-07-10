@@ -43,6 +43,9 @@
     .nav-logo { display: flex; align-items: center; gap: 10px; }
     .nav-logo img { height: 28px; filter: drop-shadow(0 2px 6px rgba(232,69,42,.4)); }
     .nav-logo span { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 3px; }
+    .nav-links { display:flex;gap:24px;font-size:14px;font-weight:500;color:var(--dim); }
+    .nav-links a:hover { color:var(--text); }
+    .nav-links a.active { color:var(--text); }
     .nav-back { font-size: 13px; color: var(--dim); display: flex; align-items: center; gap: 6px; }
     .nav-back:hover { color: var(--text); }
     .nav-spacer { flex: 1; }
@@ -169,11 +172,17 @@
 <!-- NAV -->
 <nav class="nav">
   <div class="nav-inner">
-    <a class="nav-logo" href="https://solyx.gg">
+    <a class="nav-logo" href="/">
       <img src="./solyxpfp.png" alt="Solyx">
       <span>SOLYX</span>
     </a>
-    <a class="nav-back" href="https://solyx.gg">← All Projects</a>
+    <div class="nav-links">
+      <a href="/solyx-discord-bot/">Discord Bot</a>
+      <a href="/SolyxWebGame/">Web Game</a>
+      <a href="/mods/train-station-monitor/" class="active">Factorio Mod</a>
+      <a href="/karting/">Karting</a>
+    </div>
+    <a class="nav-back" href="/">&#8592; All Projects</a>
     <div class="nav-spacer"></div>
     <a class="nav-cta btn" href="https://mods.factorio.com/mod/train-station-monitor" target="_blank">↓ Download Mod</a>
   </div>
@@ -268,14 +277,17 @@
 <!-- FOOTER -->
 <footer class="footer">
   <div class="footer-inner">
-    <a class="footer-logo" href="https://solyx.gg">
+    <a class="footer-logo" href="/">
       <img src="./solyxpfp.png" alt="Solyx">
       <span>SOLYX</span>
     </a>
     <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/solyx-discord-bot/">Discord Bot</a>
+      <a href="/SolyxWebGame/">Web Game</a>
       <a href="https://mods.factorio.com/mod/train-station-monitor" target="_blank">Mod Portal</a>
       <a href="https://github.com/TheMaksoo/train-station-monitor" target="_blank">GitHub</a>
-      <a href="https://solyx.gg">← solyx.gg</a>
+      <a href="/karting/">Karting</a>
     </div>
     <div class="footer-copy">© 2026 TheMaksoo · MIT License</div>
   </div>
