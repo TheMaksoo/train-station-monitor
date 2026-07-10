@@ -53,9 +53,39 @@ function throughput.series(group_key)
   return t and t.series or nil
 end
 
+--- Current minute counter for a group (partial minute, live).
+function throughput.current(group_key)
+  local t = storage.throughput and storage.throughput[group_key]
+  return t and (t.current or 0) or 0
+end
+
+--- Live series: last (WINDOW - 1) completed minutes + current minute.
+function throughput.series_live(group_key)
+  local s = throughput.series(group_key) or {}
+  local cur = throughput.current(group_key)
+  local out = {}
+  local start = math.max(1, #s - (WINDOW - 2))
+  for i = start, #s do out[#out + 1] = s[i] end
+  while #out < (WINDOW - 1) do table.insert(out, 1, 0) end
+  out[#out + 1] = cur
+  return out
+end
+
 --- Convenience roll-up: average per minute + peak minute over the window.
 function throughput.summary(group_key)
   local s = throughput.series(group_key)
+  if not s or #s == 0 then return 0, 0 end
+  local sum, peak = 0, 0
+  for _, v in ipairs(s) do
+    sum = sum + v
+    if v > peak then peak = v end
+  end
+  return sum / #s, peak
+end
+
+--- Live roll-up including the current partial minute.
+function throughput.summary_live(group_key)
+  local s = throughput.series_live(group_key)
   if not s or #s == 0 then return 0, 0 end
   local sum, peak = 0, 0
   for _, v in ipairs(s) do

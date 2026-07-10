@@ -69,6 +69,41 @@ local function content_quantity(value)
   return tonumber(value) or 0
 end
 
+local function push_content_part(parts, fallback_type, raw_name, raw_value)
+  local part_type = fallback_type
+  local name = raw_name
+  local value = raw_value
+
+  if type(raw_name) == "table" then
+    part_type = raw_name.type or part_type
+    name = raw_name.name
+  end
+  if type(raw_value) == "table" then
+    part_type = raw_value.type or part_type
+    if not name then name = raw_value.name end
+    value = raw_value.count or raw_value.amount or raw_value.quantity
+  end
+
+  local count = content_quantity(value)
+  if count <= 0 then return end
+  if type(name) ~= "string" or name == "" then return end
+  if part_type ~= "fluid" then part_type = "item" end
+
+  parts[#parts + 1] = { type = part_type, name = name, count = count }
+end
+
+local function collect_content_parts(contents, fallback_type)
+  local parts = {}
+  for key, value in pairs(contents or {}) do
+    if type(key) == "string" or type(key) == "table" then
+      push_content_part(parts, fallback_type, key, value)
+    elseif type(value) == "table" then
+      push_content_part(parts, fallback_type, value.name or value.signal or value.prototype, value)
+    end
+  end
+  return parts
+end
+
 local function best_content_icon(train)
   if not (train and train.valid) then return nil end
 
@@ -77,30 +112,14 @@ local function best_content_icon(train)
   local ok_fluids, fluids = pcall(function() return train.get_fluid_contents() end)
   fluids = ok_fluids and fluids or {}
 
-  local best_type, best_name, best_count = nil, nil, 0
-  for name, count in pairs(items) do
-    local qty = content_quantity(count)
-    if qty > best_count then
-      best_type, best_name, best_count = "item", name, qty
-    end
-  end
-  for name, count in pairs(fluids) do
-    local qty = content_quantity(count)
-    if qty > best_count then
-      best_type, best_name, best_count = "fluid", name, qty
-    end
-  end
+  local parts = collect_content_parts(items, "item")
+  local fluid_parts = collect_content_parts(fluids, "fluid")
+  for _, p in ipairs(fluid_parts) do parts[#parts + 1] = p end
+  if #parts == 0 then return nil end
 
-  if not best_type then return nil end
-
-  local parts = {}
-  for name, count in pairs(items) do
-    parts[#parts + 1] = { name = name, count = content_quantity(count), type = "item" }
-  end
-  for name, count in pairs(fluids) do
-    parts[#parts + 1] = { name = name, count = content_quantity(count), type = "fluid" }
-  end
   table.sort(parts, function(a, b) return a.count > b.count end)
+
+  local best = parts[1]
 
   local summary = {}
   local top_icons = {}
@@ -111,7 +130,7 @@ local function best_content_icon(train)
   end
 
   return {
-    icon = { type = best_type, name = best_name },
+    icon = { type = best.type, name = best.name },
     icons = top_icons,
     summary = table.concat(summary, " · "),
     total = count_table_values(items) + count_table_values(fluids),

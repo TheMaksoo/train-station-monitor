@@ -32,6 +32,11 @@ rendering.SORT_LOCALE = {
 local function station_total(g) return g.load + g.unload end
 local function idle_count(g)     return station_total(g) - g.present - g.disabled end
 
+local function pct(part, total)
+  if not total or total <= 0 then return 0 end
+  return math.max(0, math.min(1, part / total))
+end
+
 local SORTERS = {
   -- Default "waiting" now means LEAST saturated first (the stops that need
   -- attention because trains aren't arriving); "saturated" is the inverse.
@@ -127,6 +132,24 @@ local function signal_sprite(signal)
   return "entity/train-stop"
 end
 
+local function short_name(name, max_len)
+  local s = tostring(name or "")
+  if #s <= max_len then return s end
+  return string.sub(s, 1, math.max(1, max_len - 1)) .. "..."
+end
+
+local function add_chip(parent, text, color)
+  local frame = parent.add({ type = "frame", style = "subheader_frame", direction = "horizontal" })
+  frame.style.left_padding = 4
+  frame.style.right_padding = 4
+  frame.style.top_padding = 0
+  frame.style.bottom_padding = 0
+  local lbl = frame.add({ type = "label", caption = text })
+  lbl.style.font = "default-semibold"
+  lbl.style.font_color = color
+  return frame
+end
+
 -- Row construction ----------------------------------------------------------
 
 --- Numeric cell with an optional tooltip and colour.
@@ -212,18 +235,17 @@ local function build_station_children(tbl, g)
     nm.style.maximal_width = 360
     local meta = text.add({ type = "flow", direction = "horizontal" })
     meta.style.horizontal_spacing = 6
-    local mode_badge = meta.add({ type = "label", caption = rec.mode == "load" and "LOAD" or "UNLOAD" })
-    mode_badge.style.font = "default-semibold"
-    mode_badge.style.font_color = mode_color
-    local state_chip = meta.add({ type = "label", caption = rec.stats.disabled and "OFF" or (state_name == "serving" and "ACTIVE" or state_name == "saturated" and "FULL" or state_name == "filling" and "QUEUE" or "READY") })
-    state_chip.style.font = "default-semibold"
-    state_chip.style.font_color = state_color
+    add_chip(meta, rec.mode == "load" and "LOAD" or "UNLOAD", mode_color)
+    add_chip(meta,
+      rec.stats.disabled and "OFF" or (state_name == "serving" and "ACTIVE" or state_name == "saturated" and "FULL" or state_name == "filling" and "QUEUE" or "READY"),
+      state_color)
     if rec.mode == "load" and rec.stats.train_icons then
       for _, sig in ipairs(rec.stats.train_icons) do
-        local chip = meta.add({ type = "flow", direction = "horizontal" })
-        chip.style.horizontal_spacing = 2
-        chip.add({ type = "sprite", sprite = signal_sprite(sig) })
-        local qty = chip.add({ type = "label", caption = tostring(sig.count) })
+        local chip = add_chip(meta, "", { 0.76, 0.79, 0.86 })
+        local row2 = chip.add({ type = "flow", direction = "horizontal" })
+        row2.style.horizontal_spacing = 3
+        row2.add({ type = "sprite", sprite = signal_sprite(sig) })
+        local qty = row2.add({ type = "label", caption = short_name(sig.name, 16) .. " x " .. tostring(sig.count) })
         qty.style.font_color = { 0.76, 0.79, 0.86 }
         qty.tooltip = { "tod.tt-train-content-chip", sig.type, sig.name, sig.count }
       end
@@ -276,26 +298,33 @@ end
 -- Factorio's GUI has no native vertical bar chart, so each minute is a thin
 -- progressbar scaled to the window peak.
 local function build_chart_row(tbl, g)
-  local avg, peak = throughput.summary(g.group_key)
-  local series = throughput.series(g.group_key) or {}
+  local avg, peak = throughput.summary_live(g.group_key)
+  local series = throughput.series_live(g.group_key) or {}
+  local current = throughput.current(g.group_key)
 
-  local cell = tbl.add({ type = "flow", direction = "horizontal" })
-  cell.style.left_padding = 22
+  local panel = tbl.add({ type = "frame", style = "subheader_frame", direction = "vertical" })
+  panel.style.horizontally_stretchable = true
+  panel.style.left_padding = 16
+  panel.style.right_padding = 10
+  panel.style.top_padding = 5
+  panel.style.bottom_padding = 4
+
+  local cell = panel.add({ type = "flow", direction = "horizontal" })
   cell.style.vertical_align = "center"
   cell.style.horizontal_spacing = 8
 
   local summary = cell.add({ type = "label",
-    caption = { "tod.throughput-summary", string.format("%.1f", avg), math.floor(peak) },
+    caption = { "tod.throughput-summary", string.format("%.1f", avg), math.floor(peak), math.floor(current) },
     tooltip = { "tod.tt-throughput" } })
   summary.style.font = "default-semibold"
   summary.style.font_color = COLORS.serving
 
   local bars = cell.add({ type = "flow", direction = "horizontal" })
   bars.style.horizontal_spacing = 2
-  for _, v in ipairs(series) do
+  for i, v in ipairs(series) do
     local b = bars.add({ type = "progressbar", value = peak > 0 and (v / peak) or 0 })
-    b.style.width = 12
-    b.style.color = COLORS.saturated
+    b.style.width = 14
+    b.style.color = (i == #series) and COLORS.serving or COLORS.saturated
   end
 
   if peak == 0 then
@@ -303,6 +332,45 @@ local function build_chart_row(tbl, g)
     empty.style.font_color = { 0.62, 0.64, 0.68 }
     empty.style.font = "default-semibold"
   end
+
+  for _ = 1, 7 do tbl.add({ type = "empty-widget" }) end
+end
+
+local function build_monitor_row(tbl, g)
+  local total = station_total(g)
+  local queue_ratio = (g.qcap or 0) > 0 and pct(g.waiting or 0, g.qcap or 0) or 0
+
+  local panel = tbl.add({ type = "frame", style = "subheader_frame", direction = "vertical" })
+  panel.style.horizontally_stretchable = true
+  panel.style.left_padding = 16
+  panel.style.right_padding = 10
+  panel.style.top_padding = 5
+  panel.style.bottom_padding = 4
+
+  local cell = panel.add({ type = "flow", direction = "horizontal" })
+  cell.style.vertical_align = "center"
+  cell.style.horizontal_spacing = 8
+
+  local summary = cell.add({ type = "label",
+    caption = { "tod.monitor-summary", g.present or 0, g.waiting or 0, g.disabled or 0, total },
+    tooltip = { "tod.tt-monitor" } })
+  summary.style.font = "default-semibold"
+  summary.style.font_color = { 0.72, 0.77, 0.90 }
+
+  local p1 = cell.add({ type = "progressbar", value = pct(g.present or 0, total) })
+  p1.style.width = 90
+  p1.style.color = COLORS.serving
+  p1.tooltip = { "tod.monitor-present", g.present or 0, total }
+
+  local p2 = cell.add({ type = "progressbar", value = queue_ratio })
+  p2.style.width = 90
+  p2.style.color = group_color(g)
+  p2.tooltip = { "tod.monitor-queue", g.waiting or 0, g.qcap or 0 }
+
+  local p3 = cell.add({ type = "progressbar", value = pct(g.disabled or 0, total) })
+  p3.style.width = 90
+  p3.style.color = COLORS.disabled
+  p3.tooltip = { "tod.monitor-disabled", g.disabled or 0, total }
 
   for _ = 1, 7 do tbl.add({ type = "empty-widget" }) end
 end
@@ -319,6 +387,7 @@ function rendering.populate(rows_table, ui)
     build_group_row(rows_table, g, ui)
     if ui.expanded[g.group_key] then
       build_chart_row(rows_table, g)
+      build_monitor_row(rows_table, g)
       build_station_children(rows_table, g)
     end
   end

@@ -154,6 +154,15 @@ function gui.build_window(player)
   build_titlebar(frame, ui)
   build_toolbar(frame, ui)
 
+  local hm_banner = frame.add({ type = "frame", name = "tod_heatmap_banner", style = "subheader_frame", direction = "horizontal" })
+  hm_banner.style.horizontally_stretchable = true
+  hm_banner.style.left_padding = 8
+  hm_banner.style.right_padding = 8
+  hm_banner.style.top_padding = 3
+  hm_banner.style.bottom_padding = 3
+  local hm_text = hm_banner.add({ type = "label", name = "tod_heatmap_banner_text", caption = { "tod.heatmap-banner-on" } })
+  hm_text.style.font = "default-semibold"
+
   -- Column header (kept outside the scroll pane so it stays pinned).
   local head_holder = frame.add({ type = "frame", style = "subheader_frame", direction = "vertical" })
   head_holder.style.horizontally_stretchable = true
@@ -163,8 +172,8 @@ function gui.build_window(player)
   local scroll = frame.add({ type = "scroll-pane", name = "tod_scroll", style = "tod_rows_scroll" })
   scroll.style.horizontally_stretchable = true
   local rows = scroll.add({ type = "table", name = ROWS_TABLE, column_count = N_COLS })
-  rows.style.horizontal_spacing = 4
-  rows.style.vertical_spacing = 2
+  rows.style.horizontal_spacing = 6
+  rows.style.vertical_spacing = 4
   rows.style.column_alignments[1] = "left"
 
   -- Empty-state label (toggled by refresh).
@@ -233,6 +242,12 @@ function gui.refresh(player)
     local hm = heatmap.is_enabled(player.index)
     heatmap_badge.caption = hm and { "tod.heatmap-on" } or { "tod.heatmap-off" }
     heatmap_badge.style.font_color = hm and { 0.55, 0.82, 0.42 } or { 0.62, 0.64, 0.68 }
+
+    local banner = w.tod_heatmap_banner
+    if banner and banner.valid and banner.tod_heatmap_banner_text and banner.tod_heatmap_banner_text.valid then
+      banner.tod_heatmap_banner_text.caption = hm and { "tod.heatmap-banner-on" } or { "tod.heatmap-banner-off" }
+      banner.tod_heatmap_banner_text.style.font_color = hm and { 0.55, 0.82, 0.42 } or { 0.62, 0.64, 0.68 }
+    end
   end
 end
 

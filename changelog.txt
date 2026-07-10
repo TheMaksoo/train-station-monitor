@@ -1,4 +1,28 @@
 ---------------------------------------------------------------------------
+Version: 0.1.13
+Date: 2026-07-10
+  Improvements:
+    - Full styling pass for expanded station rows: framed chips, tighter hierarchy, and clearer cargo chips.
+    - Throughput graph now uses live 10-minute data (includes current minute) and highlights the current bar.
+    - Added dedicated monitor panels with present/queued/disabled health bars per expanded group.
+    - Added in-window heatmap activity strip and stronger row spacing/readability.
+
+---------------------------------------------------------------------------
+Version: 0.1.12
+Date: 2026-07-10
+  Improvements:
+    - Added a live throughput graph (10-minute window including the current minute).
+    - Added a per-group monitor row with present/queued/disabled bars.
+    - Improved load cargo chips to consistently display real `name x count` values.
+
+---------------------------------------------------------------------------
+Version: 0.1.11
+Date: 2026-07-10
+  Fixes:
+    - Normalized train-content parsing across Factorio table shapes so load cargo always resolves to real item/fluid names.
+    - Load cargo chips now show `name x count` next to each icon.
+
+---------------------------------------------------------------------------
 Version: 0.1.10
 Date: 2026-07-10
   Improvements:
