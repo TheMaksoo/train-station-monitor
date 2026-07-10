@@ -152,6 +152,7 @@ function gui.build_window(player)
   local empty = scroll.add({ type = "label", name = "tod_empty", caption = { "tod.empty" } })
   empty.style.single_line = false
   empty.style.top_padding = 12
+  empty.style.minimal_width = 600
 
   player.opened = frame
   return frame
