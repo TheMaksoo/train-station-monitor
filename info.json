@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "title": "Train Station Monitor",
   "author": "TheMaksoo",
-  "contact": "Solyxbot@gmail.com",
+  "contact": "",
   "homepage": "https://solyx.gg/mods/train-station-monitor",
   "description": "A live, zero-config dashboard that auto-discovers every train stop and visualizes the health of your rail network. No station IDs, no circuit signals, no combinators. Place or remove a stop and the dashboard updates itself.",
   "factorio_version": "2.0",
