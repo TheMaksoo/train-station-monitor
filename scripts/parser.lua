@@ -49,27 +49,45 @@ end
 function parser.parse(name)
   if type(name) ~= "string" or name == "" then return nil end
 
-  -- Grab the FIRST rich-text icon tag and everything after it.
-  --   [img=item/iron-plate] Load
-  --   ^^^^^^^^^^^^^^^^^^^^^^ inner = "item/iron-plate"
-  --                          rest  = " Load"
+  -- Primary: rich-text icon tag format  [img=item/iron-plate] Load
   local inner, rest = string.match(name, "%[img=([^%]]+)%](.*)")
-  if not inner then return nil end
+  if inner then
+    local kind, proto = string.match(inner, "^([%w%-_]+)[/=]([%w%-_]+)")
+    if kind and proto then
+      local mode = detect_mode(rest)
+      if mode then
+        return {
+          kind      = kind,
+          proto     = proto,
+          mode      = mode,
+          group_key = kind .. "/" .. proto,
+          sprite    = kind .. "/" .. proto,
+        }
+      end
+    end
+  end
 
-  -- Accept both "/" and "=" as the type/prototype separator, because players
-  -- (and the spec!) use both: "item/iron-plate" and "item=copper-plate".
-  local kind, proto = string.match(inner, "^([%w%-_]+)[/=]([%w%-_]+)")
-  if not kind or not proto then return nil end
-
-  local mode = detect_mode(rest)
+  -- Fallback: plain station names like "Load [41]" or "Unload [2]"
+  -- Detect mode from anywhere in the name, strip [N] suffixes, use remainder as group.
+  local mode = detect_mode(name)
   if not mode then return nil end
 
+  -- Remove [N] bracket numbers and the mode word, trim whitespace.
+  local clean = name
+  clean = string.gsub(clean, "%[%d+%]", "")          -- strip [41], [2] etc.
+  clean = string.gsub(clean, "%s*[Ll]oad%s*", " ")   -- strip Load/load
+  clean = string.gsub(clean, "%s*[Uu]nload%s*", " ") -- strip Unload/unload
+  clean = string.match(clean, "^%s*(.-)%s*$")        -- trim
+
+  local proto     = (clean ~= "") and clean or (mode == "load" and "load-station" or "unload-station")
+  local group_key = "station/" .. proto
+
   return {
-    kind      = kind,                 -- "item" | "fluid" | "virtual-signal" | ...
-    proto     = proto,                -- prototype name, e.g. "iron-plate"
-    mode      = mode,                 -- "load" | "unload"
-    group_key = kind .. "/" .. proto, -- stable grouping key for the resource
-    sprite    = kind .. "/" .. proto, -- ready-to-use SpritePath for GUI elements
+    kind      = "station",
+    proto     = proto,
+    mode      = mode,
+    group_key = group_key,
+    sprite    = "item/train-stop",
   }
 end
 
