@@ -67,13 +67,24 @@ function heatmap.redraw(player)
     if e.surface ~= surface then return end
     local color
     if rec.stats and rec.stats.disabled then
-      color = { r = 0.5, g = 0.5, b = 0.5, a = 0.45 } -- grey: out of the supply picture
+      color = { r = 0.5, g = 0.5, b = 0.5, a = 0.75 } -- grey: out of the supply picture
     else
       color = heat_color((rec.stats and rec.stats.congestion) or 0)
     end
+
+    local core = { r = color.r, g = color.g, b = color.b, a = 0.22 }
     p.objs[#p.objs + 1] = rendering.draw_circle({
       color         = color,
-      radius        = 2.2,
+      radius        = 2.8,
+      filled        = false,
+      target        = e.position,
+      surface       = surface,
+      players       = { player },
+      draw_on_ground = true,
+    })
+    p.objs[#p.objs + 1] = rendering.draw_circle({
+      color         = core,
+      radius        = 1.2,
       filled        = true,
       target        = e.position,
       surface       = surface,

@@ -140,7 +140,7 @@ local function build_header(container)
     local lbl = head.add({ type = "label", caption = { c[1] }, tooltip = c[2] and { c[2] } or nil })
     lbl.style.font = "default-bold"
     if i > 1 then lbl.style.width = 64; lbl.style.horizontal_align = "center" end
-    if i == 1 then lbl.style.minimal_width = 200 end
+    if i == 1 then lbl.style.minimal_width = 440 end
   end
 end
 
@@ -153,15 +153,6 @@ function gui.build_window(player)
 
   build_titlebar(frame, ui)
   build_toolbar(frame, ui)
-
-  local hm_banner = frame.add({ type = "frame", name = "tod_heatmap_banner", style = "subheader_frame", direction = "horizontal" })
-  hm_banner.style.horizontally_stretchable = true
-  hm_banner.style.left_padding = 8
-  hm_banner.style.right_padding = 8
-  hm_banner.style.top_padding = 3
-  hm_banner.style.bottom_padding = 3
-  local hm_text = hm_banner.add({ type = "label", name = "tod_heatmap_banner_text", caption = { "tod.heatmap-banner-on" } })
-  hm_text.style.font = "default-semibold"
 
   -- Column header (kept outside the scroll pane so it stays pinned).
   local head_holder = frame.add({ type = "frame", style = "subheader_frame", direction = "vertical" })
@@ -242,12 +233,6 @@ function gui.refresh(player)
     local hm = heatmap.is_enabled(player.index)
     heatmap_badge.caption = hm and { "tod.heatmap-on" } or { "tod.heatmap-off" }
     heatmap_badge.style.font_color = hm and { 0.55, 0.82, 0.42 } or { 0.62, 0.64, 0.68 }
-
-    local banner = w.tod_heatmap_banner
-    if banner and banner.valid and banner.tod_heatmap_banner_text and banner.tod_heatmap_banner_text.valid then
-      banner.tod_heatmap_banner_text.caption = hm and { "tod.heatmap-banner-on" } or { "tod.heatmap-banner-off" }
-      banner.tod_heatmap_banner_text.style.font_color = hm and { 0.55, 0.82, 0.42 } or { 0.62, 0.64, 0.68 }
-    end
   end
 end
 

@@ -1,4 +1,13 @@
 ---------------------------------------------------------------------------
+Version: 0.1.15
+Date: 2026-07-10
+  Improvements:
+    - Added a visible sparkline graph to throughput rows (in addition to bars).
+    - Highlighted current-minute throughput bar for quicker live reading.
+    - Redesigned map heatmap markers to ring+core style for cleaner visibility.
+    - Removed the bulky in-window heatmap banner strip.
+
+---------------------------------------------------------------------------
 Version: 0.1.14
 Date: 2026-07-10
   Fixes:

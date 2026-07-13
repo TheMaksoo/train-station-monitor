@@ -138,6 +138,20 @@ local function short_name(name, max_len)
   return string.sub(s, 1, math.max(1, max_len - 1)) .. "..."
 end
 
+local function cargo_summary(icons)
+  if not icons or #icons == 0 then return nil end
+  local shown = {}
+  local max_items = 2
+  for i = 1, math.min(#icons, max_items) do
+    local sig = icons[i]
+    shown[#shown + 1] = short_name(sig.name, 18) .. " x " .. tostring(sig.count)
+  end
+  if #icons > max_items then
+    shown[#shown + 1] = "+" .. tostring(#icons - max_items) .. " more"
+  end
+  return table.concat(shown, "  •  ")
+end
+
 local function add_chip(parent, text, color)
   local frame = parent.add({ type = "frame", style = "subheader_frame", direction = "horizontal" })
   frame.style.left_padding = 4
@@ -148,6 +162,20 @@ local function add_chip(parent, text, color)
   lbl.style.font = "default-semibold"
   lbl.style.font_color = color
   return frame
+end
+
+local SPARK = { " ", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█" }
+local function sparkline(series, peak)
+  if not series or #series == 0 then return "" end
+  local out = {}
+  local p = peak and peak > 0 and peak or 1
+  for _, v in ipairs(series) do
+    local idx = math.floor((math.max(0, v) / p) * 8 + 0.5)
+    if idx < 0 then idx = 0 end
+    if idx > 8 then idx = 8 end
+    out[#out + 1] = SPARK[idx + 1]
+  end
+  return table.concat(out, "")
 end
 
 -- Row construction ----------------------------------------------------------
@@ -213,7 +241,8 @@ local function build_station_children(tbl, g)
     cell.style.right_padding = 10
     cell.style.top_padding = 4
     cell.style.bottom_padding = 4
-    cell.style.horizontally_stretchable = true
+    cell.style.minimal_width = 440
+    cell.style.maximal_width = 440
     local card = cell.add({ type = "flow", direction = "horizontal" })
     card.style.vertical_align = "center"
     card.style.horizontally_stretchable = true
@@ -222,33 +251,32 @@ local function build_station_children(tbl, g)
     icon.style.minimal_width = 20
     icon.style.minimal_height = 20
     local text = card.add({ type = "flow", direction = "vertical" })
-    text.style.vertical_spacing = 0
     text.style.horizontally_stretchable = true
+    text.style.vertical_spacing = 2
+
     local row = text.add({ type = "flow", direction = "horizontal" })
     row.style.vertical_align = "center"
-    row.style.horizontal_spacing = 6
-    local dot = row.add({ type = "label", caption = "●" })
-    dot.style.font_color = color
+    row.style.horizontally_stretchable = true
+    row.style.horizontal_spacing = 5
+
+    add_chip(row, rec.mode == "load" and "LOAD" or "UNLOAD", mode_color)
+    add_chip(row,
+      rec.stats.disabled and "OFF" or (state_name == "serving" and "ACTIVE" or state_name == "saturated" and "FULL" or state_name == "filling" and "QUEUE" or "READY"),
+      state_color)
+
     local nm = row.add({ type = "label", caption = rec.name })
     nm.style.font = "default-semibold"
     nm.style.single_line = true
-    nm.style.maximal_width = 360
-    local meta = text.add({ type = "flow", direction = "horizontal" })
-    meta.style.horizontal_spacing = 6
-    add_chip(meta, rec.mode == "load" and "LOAD" or "UNLOAD", mode_color)
-    add_chip(meta,
-      rec.stats.disabled and "OFF" or (state_name == "serving" and "ACTIVE" or state_name == "saturated" and "FULL" or state_name == "filling" and "QUEUE" or "READY"),
-      state_color)
-    if rec.mode == "load" and rec.stats.train_icons then
-      for _, sig in ipairs(rec.stats.train_icons) do
-        local chip = add_chip(meta, "", { 0.76, 0.79, 0.86 })
-        local row2 = chip.add({ type = "flow", direction = "horizontal" })
-        row2.style.horizontal_spacing = 3
-        row2.add({ type = "sprite", sprite = signal_sprite(sig) })
-        local qty = row2.add({ type = "label", caption = short_name(sig.name, 16) .. " x " .. tostring(sig.count) })
-        qty.style.font_color = { 0.76, 0.79, 0.86 }
-        qty.tooltip = { "tod.tt-train-content-chip", sig.type, sig.name, sig.count }
-      end
+    nm.style.horizontally_stretchable = true
+    nm.style.maximal_width = 230
+
+    local cargo = rec.mode == "load" and cargo_summary(rec.stats.train_icons) or nil
+    if cargo then
+      local cargo_lbl = text.add({ type = "label", caption = cargo })
+      cargo_lbl.style.single_line = true
+      cargo_lbl.style.maximal_width = 390
+      cargo_lbl.style.font_color = { 0.76, 0.79, 0.86 }
+      cargo_lbl.tooltip = { "tod.tt-train-content" }
     end
 
     -- Col 2: per-station controls.
@@ -326,6 +354,11 @@ local function build_chart_row(tbl, g)
     b.style.width = 14
     b.style.color = (i == #series) and COLORS.serving or COLORS.saturated
   end
+
+  local graph = cell.add({ type = "label", caption = sparkline(series, peak) })
+  graph.style.font = "default-bold"
+  graph.style.font_color = { 0.76, 0.81, 0.35 }
+  graph.tooltip = { "tod.tt-throughput" }
 
   if peak == 0 then
     local empty = cell.add({ type = "label", caption = { "tod.throughput-none" } })
