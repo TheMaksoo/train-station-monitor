@@ -17,6 +17,28 @@ data:extend({
     key_sequence = "CONTROL + T",
     action = "lua",
   },
+  {
+    type = "shortcut",
+    name = "tod-toggle-dashboard",
+    order = "a[train-station-monitor]",
+    action = "lua",
+    toggleable = false,
+    associated_control_input = "tod-toggle-dashboard",
+    icon = {
+      filename = "__base__/graphics/icons/locomotive.png",
+      priority = "extra-high-no-scale",
+      size = 64,
+      scale = 1,
+    },
+    small_icon = {
+      filename = "__base__/graphics/icons/locomotive.png",
+      priority = "extra-high-no-scale",
+      size = 64,
+      scale = 0.5,
+    },
+    localised_name = { "mod-name.train-station-monitor" },
+    localised_description = { "tod.button-tooltip" },
+  },
 })
 
 -- GUI styles ----------------------------------------------------------------

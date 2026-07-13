@@ -189,6 +189,11 @@ local function num_cell(parent, name, value, tooltip, color)
   return lbl
 end
 
+local function wait_text(ticks)
+  if not ticks or ticks <= 0 then return "–" end
+  return string.format("%d:%02d", math.floor(ticks / 3600), math.floor((ticks % 3600) / 60))
+end
+
 --- Build one resource group row (the collapsed, always-visible line).
 -- element names carry the group_key so gui.lua's single click handler can route
 -- without maintaining a separate lookup table.
@@ -221,7 +226,7 @@ local function build_group_row(tbl, g, ui)
   num_cell(tbl, nil, g.disabled, { "tod.tt-value-disabled", g.disabled, station_total(g) }, g.disabled > 0 and COLORS.disabled or nil)
 
   -- Optional average wait (mm:ss). Hidden value 0 shows as "–".
-  local wait_txt = g.wait_avg > 0 and string.format("%d:%02d", math.floor(g.wait_avg / 3600), math.floor((g.wait_avg % 3600) / 60)) or "–"
+  local wait_txt = wait_text(g.wait_avg)
   num_cell(tbl, nil, wait_txt, { "tod.tt-wait-time" })
 end
 
@@ -235,29 +240,31 @@ local function build_station_children(tbl, g)
     local state_name = rec.stats.state or "idle"
     local station_icon = rec.mode == "load" and rec.stats.train_icon or nil
 
-    -- Col 1: card-like station identity block.
+    -- Col 1: station identity block + controls.
     local cell = tbl.add({ type = "frame", style = "subheader_frame", direction = "horizontal" })
     cell.style.left_padding = 14
     cell.style.right_padding = 10
     cell.style.top_padding = 4
     cell.style.bottom_padding = 4
-    cell.style.minimal_width = 440
-    cell.style.maximal_width = 440
-    local card = cell.add({ type = "flow", direction = "horizontal" })
-    card.style.vertical_align = "center"
-    card.style.horizontally_stretchable = true
-    card.style.horizontal_spacing = 8
-    local icon = card.add({ type = "sprite", sprite = signal_sprite(station_icon) })
+    cell.style.minimal_width = 320
+    cell.style.maximal_width = 320
+    local wrap = cell.add({ type = "flow", direction = "horizontal" })
+    wrap.style.vertical_align = "center"
+    wrap.style.horizontally_stretchable = true
+    wrap.style.horizontal_spacing = 8
+
+    local icon = wrap.add({ type = "sprite", sprite = signal_sprite(station_icon) })
     icon.style.minimal_width = 20
     icon.style.minimal_height = 20
-    local text = card.add({ type = "flow", direction = "vertical" })
+
+    local text = wrap.add({ type = "flow", direction = "vertical" })
     text.style.horizontally_stretchable = true
     text.style.vertical_spacing = 2
 
     local row = text.add({ type = "flow", direction = "horizontal" })
     row.style.vertical_align = "center"
     row.style.horizontally_stretchable = true
-    row.style.horizontal_spacing = 5
+    row.style.horizontal_spacing = 4
 
     add_chip(row, rec.mode == "load" and "LOAD" or "UNLOAD", mode_color)
     add_chip(row,
@@ -268,55 +275,47 @@ local function build_station_children(tbl, g)
     nm.style.font = "default-semibold"
     nm.style.single_line = true
     nm.style.horizontally_stretchable = true
-    nm.style.maximal_width = 230
+    nm.style.maximal_width = 150
 
     local cargo = rec.mode == "load" and cargo_summary(rec.stats.train_icons) or nil
     if cargo then
       local cargo_lbl = text.add({ type = "label", caption = cargo })
       cargo_lbl.style.single_line = true
-      cargo_lbl.style.maximal_width = 390
+      cargo_lbl.style.maximal_width = 250
       cargo_lbl.style.font_color = { 0.76, 0.79, 0.86 }
       cargo_lbl.tooltip = { "tod.tt-train-content" }
     end
 
-    -- Col 2: per-station controls.
-    local ctl = tbl.add({ type = "flow", direction = "horizontal" })
+    local spacer = wrap.add({ type = "empty-widget" })
+    spacer.style.horizontally_stretchable = true
+
+    local ctl = wrap.add({ type = "flow", direction = "horizontal" })
     ctl.style.horizontal_align = "left"
+    ctl.style.horizontal_spacing = 2
     ctl.add({ type = "sprite-button", name = "tod_zoom__"  .. rec.unit_number, style = "tod_control_button", sprite = "utility/search_icon", tooltip = { "tod.tt-zoom" } })
     ctl.add({ type = "sprite-button", name = "tod_train__" .. rec.unit_number, style = "tod_control_button", sprite = "item/locomotive", tooltip = { "tod.tt-show-train" } })
     ctl.add({ type = "sprite-button", name = "tod_toggle__".. rec.unit_number, style = "tod_control_button", sprite = rec.stats.disabled and "utility/play" or "utility/stop", tooltip = { "tod.tt-toggle-enabled" } })
 
-    -- Col 3: state label.
-    local state_cap = ({
-      saturated = { "tod.station-full" },
-      filling   = { "tod.station-queue" },
-      serving   = { "tod.station-active" },
-      idle      = { "tod.station-ready" },
-      disabled  = { "tod.station-disabled" },
-    })[rec.stats.state] or { "tod.station-ready" }
-    local span = tbl.add({ type = "label", caption = state_cap })
-    span.style.font_color = state_color
-    span.style.font = rec.stats.disabled and "default" or "default-semibold"
+    num_cell(tbl, nil, rec.mode == "load" and 1 or 0, { "tod.tt-load" }, rec.mode == "load" and mode_color or nil)
+    num_cell(tbl, nil, rec.mode == "unload" and 1 or 0, { "tod.tt-unload" }, rec.mode == "unload" and mode_color or nil)
+    num_cell(tbl, nil, 1, { "tod.tt-stations" })
+    num_cell(tbl, nil, rec.stats.present and 1 or 0, { "tod.tt-value-present", rec.stats.present and 1 or 0, 1 }, rec.stats.present and COLORS.serving or nil)
 
-    -- Col 4: saturation bar + "waiting/capacity" — how many ARE and CAN wait.
-    local sat = tbl.add({ type = "flow", direction = "horizontal" })
-    sat.style.vertical_align = "center"
-    sat.style.horizontal_spacing = 4
-    if rec.stats.disabled then
-      local off = sat.add({ type = "label", caption = "OFF" })
-      off.style.font_color = COLORS.disabled
-    else
-      local bar = sat.add({ type = "progressbar", value = math.min(1, rec.stats.saturation or 0) })
-      bar.style.width = 60
-      bar.style.color = color
-      local lbl = sat.add({ type = "label",
-        caption = (rec.stats.waiting or 0) .. "/" .. (rec.stats.qcap or 0),
-        tooltip = { "tod.tt-value-queue", rec.stats.waiting or 0, rec.stats.qcap or 0 } })
-      lbl.style.font_color = color
-    end
+    local queue = tbl.add({ type = "flow", direction = "horizontal" })
+    queue.style.vertical_align = "center"
+    queue.style.horizontal_spacing = 4
+    local bar = queue.add({ type = "progressbar", value = math.min(1, rec.stats.saturation or 0) })
+    bar.style.width = 44
+    bar.style.color = color
+    local qlbl = queue.add({ type = "label",
+      caption = (rec.stats.waiting or 0) .. "/" .. (rec.stats.qcap or 0),
+      tooltip = { "tod.tt-value-queue", rec.stats.waiting or 0, rec.stats.qcap or 0 } })
+    qlbl.style.font_color = color
+    qlbl.style.width = 64
+    qlbl.style.horizontal_align = "center"
 
-    -- Pad remaining columns to keep the 8-column grid aligned.
-    for _ = 1, 4 do tbl.add({ type = "empty-widget" }) end
+    num_cell(tbl, nil, rec.stats.disabled and 1 or 0, { "tod.tt-value-disabled", rec.stats.disabled and 1 or 0, 1 }, rec.stats.disabled and COLORS.disabled or nil)
+    num_cell(tbl, nil, wait_text(rec.wait and rec.wait.avg or 0), { "tod.tt-wait-time" })
   end
 end
 

@@ -49,9 +49,14 @@ Place or remove a stop → the dashboard updates itself. No IDs, no signals, no 
 
 ### Install manually
 ```
-train-station-monitor_0.1.0.zip  →  %APPDATA%\Factorio\mods\
+train-station-monitor_0.1.16.zip  →  %APPDATA%\Factorio\mods\
 ```
-The zip must contain a folder named `train-station-monitor_0.1.0` at the top level.
+The zip must contain a folder named `train-station-monitor_0.1.16` at the top level.
+
+### Share with a friend
+1. Send them the packaged zip from the latest release.
+2. They drop it into `%APPDATA%\Factorio\mods\`.
+3. They enable the mod in Factorio and reload.
 
 ### Open the dashboard
 - Click the **🚂 locomotive button** in the top-left mod-GUI area, **or**

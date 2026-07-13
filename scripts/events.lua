@@ -86,6 +86,11 @@ local function on_toggle_input(event)
   gui.toggle(game.get_player(event.player_index))
 end
 
+local function on_lua_shortcut(event)
+  if event.prototype_name ~= "tod-toggle-dashboard" then return end
+  gui.toggle(game.get_player(event.player_index))
+end
+
 -- Registration --------------------------------------------------------------
 
 function events.register()
@@ -127,6 +132,7 @@ function events.register()
 
   -- Keybind toggle.
   script.on_event("tod-toggle-dashboard", on_toggle_input)
+  script.on_event(defines.events.on_lua_shortcut, on_lua_shortcut)
 
   -- The only periodic work: statistics + repaint once per second, and the
   -- throughput ring buffer rolls once per minute.

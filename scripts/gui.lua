@@ -140,7 +140,7 @@ local function build_header(container)
     local lbl = head.add({ type = "label", caption = { c[1] }, tooltip = c[2] and { c[2] } or nil })
     lbl.style.font = "default-bold"
     if i > 1 then lbl.style.width = 64; lbl.style.horizontal_align = "center" end
-    if i == 1 then lbl.style.minimal_width = 440 end
+    if i == 1 then lbl.style.minimal_width = 320 end
   end
 end
 

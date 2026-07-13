@@ -1,4 +1,13 @@
 ---------------------------------------------------------------------------
+Version: 0.1.16
+Date: 2026-07-10
+  Improvements:
+    - Realigned expanded station rows to the dashboard column grid.
+    - Moved per-station controls back into the first column to keep the layout inside the window width.
+    - Tightened station-name and cargo-summary widths to reduce overflow and empty-space drift.
+    - Updated release documentation for sharing the packaged mod zip.
+
+---------------------------------------------------------------------------
 Version: 0.1.15
 Date: 2026-07-10
   Improvements:
